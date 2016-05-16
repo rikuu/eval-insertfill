@@ -6,25 +6,31 @@ BEDTOOLS=bedtools
 SAMTOOLS=samtools
 BWA=bwa
 GAP2SEQ=../Gap2Seq-2.0/build/Gap2Seq
-GAP2CUTTER=../Gap2Seq-2.0/build/GapCutter
+GAPCUTTER=../Gap2Seq-2.0/build/GapCutter
 EXTRACT=../extract/extract
 
 # Parameters for the testing
 READLENGTH=100
 COVERAGE=30
+CONTIG=chr17
 MEANS=(150 1500 3000)
 STDDEVS=(15 150 300)
-GENOMELENGTH=10000
-# GAPLENGTHS=(10 20 30 40 50 100 110 120 130 140 150 175 200 210 220 230 240 250 260 270 280 290 300 \
-#  400 450 500 550 600 650 700 750 800 850 900 1000 1100 1200 1300 1400 1500 1600 1700 1800 1900 2000 \
-#  2250 2500 2750 3000 3500 4000 4500 5000)
+
+# '('+' '.join([str(int(i)) for i in np.logspace(log(11, 10), log(5000, 10), 20)])+')'
+GAPLENGTHS=(1 10 15 20 28 39 55 75 104 144 199 275 380 524 723 \
+  999 1378 1902 2625 3623 4999)
 
 # Exit if any command fails
 set -e
 
+# Index the reference genome
+if [ ! -f chr17.fa.amb ]; then
+  $BWA index chr17.fa
+fi
+
 for ((i=0;i<${#MEANS[@]};++i)); do
   # Generate reads with the different parameters
-  if [ ! -f reads"$i"_pe1.fa ]; then
+  if [ ! -f reads"$i"_pe1.fq ]; then
     $DWGSIM -i -1 $READLENGTH -2 $READLENGTH -d ${MEANS[i]} -s ${STDDEVS[i]} \
       -C $COVERAGE chr17.fa reads"$i"
     rm reads"$i".bfast*
@@ -35,21 +41,20 @@ for ((i=0;i<${#MEANS[@]};++i)); do
 
   # Map-sort-index the reads
   if [ ! -f known_aln"$i".bam ]; then
-    $BWA mem -t 4 -I ${MEANS[i]},${STDDEVS[i]} chr17.fa reads"$i"_pe1.fq \
+    $BWA mem -t 16 -I ${MEANS[i]},${STDDEVS[i]} chr17.fa reads"$i"_pe1.fq \
         reads"$i"_pe2.fq | \
       $SAMTOOLS view -Shu - | \
       $SAMTOOLS sort - | \
-      $SAMTOOLS rmdup -s - - > aln.bam
+      $SAMTOOLS rmdup -s - - > known_aln"$i".bam
     $SAMTOOLS index known_aln"$i".bam
   fi
 done
 
-#for GAPLENGTH in "${GAPLENGTHS[@]}"; do
-for ((GAPLENGTH=10; GAPLENGTH<=5000; GAPLENGTH+=10)); do
+for GAPLENGTH in "${GAPLENGTHS[@]}"; do
   rm -f aln.* tmp.* known.* overlap.* unmapped.* filter.* gapped_genome.*
 
   # Generate a gapped genome
-  START=$(((RANDOM % 8000000) + 100000))
+  START=$(((RANDOM % 80000) + 1000))
   END=$((START+GAPLENGTH))
   echo -e "$CONTIG\t$START\t$END" > tmp.bed
   $BEDTOOLS maskfasta -fi chr17.fa -bed tmp.bed -fo gapped_genome.fa
@@ -66,7 +71,7 @@ for ((GAPLENGTH=10; GAPLENGTH<=5000; GAPLENGTH+=10)); do
     rm -f aln.bam aln.fa known.fa overlap.fa unmapped.fa filter.fa
 
     # Map-sort-index reads to the gapped genome/assembly
-    $BWA mem -t 4 -I ${MEANS[i]},${STDDEVS[i]} gapped_genome.fa \
+    $BWA mem -t 16 -I ${MEANS[i]},${STDDEVS[i]} gapped_genome.fa \
         reads"$i"_pe1.fq reads"$i"_pe2.fq | \
       $SAMTOOLS view -Shu - | \
       $SAMTOOLS sort - | \
@@ -89,7 +94,7 @@ for ((GAPLENGTH=10; GAPLENGTH<=5000; GAPLENGTH+=10)); do
       $SAMTOOLS fasta - > known.fa
 
     # Extract filtered reads
-    $EXTRACT aln.bam 101 ${MEANS[i]} ${STDDEVS[i]} $CONTIG $START $END \
+    $EXTRACT aln.bam $READLENGTH ${MEANS[i]} ${STDDEVS[i]} $CONTIG $START $END \
       > filter.fa
 
     # Evaluate the schemes
@@ -101,4 +106,4 @@ for ((GAPLENGTH=10; GAPLENGTH<=5000; GAPLENGTH+=10)); do
   done
 done
 
-rm -f aln.* tmp.* known_aln.* known.* overlap.* unmapped.* filter.* gapped_genome.fa
+rm -f aln.* tmp.* known.* overlap.* unmapped.* filter.* gapped_genome.fa
