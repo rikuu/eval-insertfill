@@ -3,6 +3,8 @@ set -e
 
 source $DIR/configuration.sh
 
+cd $DATA
+
 if [ ! -f gaps.fa ]; then
   # Create a fake assembly (masked donor genome in SV context)
   python $SCRIPTS/gap_bed.py inserts.bed gaps.bed
@@ -27,7 +29,7 @@ if [ ! -f gaps.fa ]; then
       $SAMTOOLS rmdup -s - - > aln."${MEANS[i]}".bam
     $SAMTOOLS index aln."${MEANS[i]}".bam
 
-    echo -e "aln.${MEANS[i]}.bam\t${MEANS[i]}\tALN${MEANS[i]}" >> pindel.txt
-    echo -e "aln.${MEANS[i]}.bam\t$READLENGTH\t${MEANS[i]}\t${STDDEVS[i]}" >> libraries.txt
+    echo -e "$DATA/aln.${MEANS[i]}.bam\t${MEANS[i]}\tALN${MEANS[i]}" >> pindel.txt
+    echo -e "$DATA/aln.${MEANS[i]}.bam\t$READLENGTH\t${MEANS[i]}\t${STDDEVS[i]}" >> libraries.txt
   done
 done

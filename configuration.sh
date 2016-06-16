@@ -18,3 +18,6 @@ STDDEVS=(15 150 300)
 CONTIG=chr17
 GENOME=chr17.fa
 # TODO: Run fix_chr17.py ?
+
+PREFIX=$DIR
+#DATA=$PREFIX/data/

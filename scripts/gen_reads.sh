@@ -3,6 +3,8 @@ set -e
 
 source $DIR/configuration.sh
 
+cd $DATA
+
 # Index the source genome
 if [ ! -f $GENOME.amb ]; then
   $BWA index $GENOME
