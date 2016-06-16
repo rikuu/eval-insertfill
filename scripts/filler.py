@@ -58,7 +58,8 @@ def fill_gap(seq, id, scaffold, start, end, solid, k, libraries):
 
     subprocess.check_call(['rm', '-f',
         'tmp.reads.' + id + '.fasta',
-        'tmp.gap.' + id + '.fasta'])
+        'tmp.gap.' + id + '.fasta',
+        'tmp.reads.' + id + '.h5'])
 
     return (str(gap_length), str(cov), str(filled))
 
@@ -146,7 +147,8 @@ if __name__ == '__main__':
     parser.add_argument('-b', '--bed')
     parser.add_argument('-g', '--gaps')
     parser.add_argument('--async', action='store_true', default=False)
-    # parser.add_argument('-i', '--index')
+    parser.add_argument('-i', '--index', type=int, default=-1)
+    #parser.add_argument('--cpu')
 
     args = parser.parse_args()
 
@@ -156,6 +158,9 @@ if __name__ == '__main__':
         for lib in f:
             arg = lib.split('\t')
             libraries += [Library(arg[0], int(arg[1]), int(arg[2]), int(arg[3]))]
+
+    if args['index'] != -1:
+        libraries = libraries[args['index']]
 
     if args['bed'] == None or args['gaps'] == None:
         if args['scaffolds'] != None:
