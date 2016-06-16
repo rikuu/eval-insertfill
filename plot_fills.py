@@ -68,8 +68,9 @@ def format_axes(ax):
         axis.set_tick_params(direction='out', color=SPINE_COLOR)
 
     ax.set_xscale('log')
-    ax.set_xlabel("Gap Length")
-    ax.set_ylabel("Filled")
+    # ax.set_yscale('log')
+    ax.set_xlabel("Gap Length (log)")
+    ax.set_ylabel("Normalized edit distance")
 
     ax.set_ylim([0.0, 1.0])
 
@@ -77,8 +78,8 @@ def format_axes(ax):
 
 # Read scores
 #        similarity
-# filter    0
-# normal    1
+# normal    0
+# filter    1
 dds = [defaultdict(lambda: defaultdict(list)) for i in range(2)]
 
 with open(sys.argv[1], 'r') as f:
@@ -87,32 +88,38 @@ with open(sys.argv[1], 'r') as f:
     d = l.rstrip().split()
 
     length = int(d[0])
-    mean = int(d[1])
-    stddev = int(d[2])
 
-    for i in range(2):
-        dds[i][mean][length].append(float(d[i+3]))
+    #mean = int(d[1])
+    #stddev = int(d[2])
 
-def count2(l):
-    num = 0.
-    for d in l:
-        if d > 0.05:
-            num += 1.
-    return num / len(l)
+    norm = lambda i: 1. - (float(d[i]) / length)
 
-def plot_fills(ax, filter, normal, steps=50):
+    dds[0][150][length].append(norm(1))
+    dds[1][150][length].append(norm(2))
+    dds[0][1500][length].append(norm(3))
+    dds[1][1500][length].append(norm(4))
+    dds[0][3000][length].append(norm(5))
+    dds[1][3000][length].append(norm(6))
+    dds[0][9000][length].append(norm(7))
+    dds[1][9000][length].append(norm(8))
+
+def plot_fills(ax, normal, filter, legend=True):
     lengths = sorted(filter.keys())
-    smooth_lengths = np.logspace(log(min(lengths), 10), log(max(lengths), 10), steps)
+    #smooth_lengths = np.logspace(log(min(lengths), 10), log(max(lengths), 10), steps)
 
+    average = lambda l: sum(l) / float(len(l))
     stripe = lambda d, f: [f(d[i]) for i in lengths]
-    smooth = lambda d, f: spline(lengths, stripe(d, f), smooth_lengths)
+    #smooth = lambda d, f: spline(lengths, stripe(d, f), smooth_lengths)
 
-    ax.plot(smooth_lengths, smooth(filter, count2), '-', smooth_lengths, smooth(normal, count2), '--')
-    ax.legend(['Filter', 'Normal'])
+    ax.plot(lengths, stripe(filter, average), '-',
+            lengths, stripe(normal, average), '--')
 
-latexify(fig_width=6.9*3, columns=2.5, rows=1)
-fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
-for ax, l in zip([ax1, ax2, ax3], [150, 1500, 3000]):
+    if legend:
+        ax.legend(['Filter', 'All reads'])
+
+latexify(fig_width=6.9*4, columns=3, rows=1)
+fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4)
+for ax, l in zip([ax1, ax2, ax3, ax4], [150, 1500, 3000, 9000]):
     plot_fills(format_axes(ax), dds[0][l], dds[1][l])
 plt.tight_layout()
 plt.show()
@@ -120,7 +127,7 @@ plt.show()
 # latexify()
 # for l in [150, 1500, 3000]:
 #     fig = plt.figure()
-#     plot_fills(format_axes(fig.add_subplot(111)), dds[0][l], dds[1][l], 50)
+#     plot_fills(format_axes(fig.add_subplot(111)), dds[0][l], dds[1][l], l == 150)
 #     plt.tight_layout()
 #     if len(sys.argv) >= 2:
 #         plt.savefig(sys.argv[2] + "." + str(l) + ".pgf")

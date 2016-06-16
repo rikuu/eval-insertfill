@@ -34,6 +34,7 @@ for ((i=0;i<${#MEANS[@]};++i)); do
     $DWGSIM -i -1 $READLENGTH -2 $READLENGTH -d ${MEANS[i]} -s ${STDDEVS[i]} \
       -C $COVERAGE chr17.fa reads"$i"
     rm reads"$i".bfast*
+    # rm reads"$i".mutations.vcf
 
     mv reads"$i".bwa.read1.fastq reads"$i"_pe1.fq
     mv reads"$i".bwa.read2.fastq reads"$i"_pe2.fq
@@ -51,7 +52,7 @@ for ((i=0;i<${#MEANS[@]};++i)); do
 done
 
 for GAPLENGTH in "${GAPLENGTHS[@]}"; do
-  rm -f aln.* tmp.* known.* overlap.* unmapped.* filter.* gapped_genome.*
+  rm -f tmp.* gapped_genome.fa*
 
   # Generate a gapped genome
   START=$(((RANDOM % 80000) + 1000))
@@ -68,44 +69,43 @@ for GAPLENGTH in "${GAPLENGTHS[@]}"; do
   END=$(cat tmp.bed | cut -f3)
 
   for ((i=0;i<${#MEANS[@]};++i)); do
-    rm -f aln.bam aln.fa known.fa overlap.fa unmapped.fa filter.fa
+    rm -f pe*.bam aln.fa known.fa overlap.fa unmapped.fa filter.fa
 
     # Map-sort-index reads to the gapped genome/assembly
-    rm -f aln.fa overlap.fa unmapped.fa
     for PE in pe1 pe2; do
-      bwa mem -t 16 -I ${MEANS[i]},${STDDEVS[i]} gapped_genome.fa \
-          reads"$i"_"$PE".fa | \
-        samtools view -Shu - | \
-        samtools sort - | \
-        samtools rmdup -s - - > "$PE".bam
-      samtools index "$PE".bam
+      $BWA mem -t 16 -I ${MEANS[i]},${STDDEVS[i]} gapped_genome.fa \
+          reads"$i"_"$PE".fq | \
+        $SAMTOOLS view -Shu - | \
+        $SAMTOOLS sort - | \
+        $SAMTOOLS rmdup -s - - > "$PE".bam
+      $SAMTOOLS index "$PE".bam
 
       # Extract all reads
-      samtools fasta "$PE".bam >> aln.fa
+      $SAMTOOLS fasta "$PE".bam >> aln.fa
 
       # Extract all overlapping reads
-      samtools view -F4 -b -L tmp.bed "$PE".bam | \
-        samtools fasta - >> overlap.fa
+      $SAMTOOLS view -F4 -b -L tmp.bed "$PE".bam | \
+        $SAMTOOLS fasta - >> overlap.fa
 
       # Extract all unmapped reads
-      samtools view -f4 -b "$PE".bam | \
-        samtools fasta - >> unmapped.fa
+      $SAMTOOLS view -f4 -b "$PE".bam | \
+        $SAMTOOLS fasta - >> unmapped.fa
     done
 
     # Extract all known gap-covering reads
-    samtools view -b -L tmp.bed known_aln"$i".bam | \
-      samtools fasta - > known.fa
+    $SAMTOOLS view -b -L tmp.bed known_aln"$i".bam | \
+      $SAMTOOLS fasta - > known.fa
 
     # Extract filtered reads
-    ../extract/extract pe1.bam pe2.bam $READLENGTH ${MEANS[i]} ${STDDEVS[i]} \
+    $EXTRACT pe1.bam pe2.bam $READLENGTH ${MEANS[i]} ${STDDEVS[i]} \
       $CONTIG $START $END > filter.fa
 
     # Evaluate the schemes
     OVERLAP=$(python evaluate.py aln.fa known.fa overlap.fa)
     UNMAPPED=$(python evaluate.py aln.fa known.fa unmapped.fa)
     FILTER=$(python evaluate.py aln.fa known.fa filter.fa)
-    echo $GAPLENGTH ${MEANS[i]} ${STDDEVS[i]} $OVERLAP $UNMAPPED $FILTER >> results
+    echo $GAPLENGTH ${MEANS[i]} ${STDDEVS[i]} $OVERLAP $UNMAPPED $FILTER >> results_npe
   done
 done
 
-rm -f aln.* tmp.* known_aln.* known.* overlap.* unmapped.* filter.* gapped_genome.fa
+rm -f aln.* tmp.* known.* overlap.* unmapped.* filter.* gapped_genome.fa

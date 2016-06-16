@@ -5,7 +5,10 @@ def parse_ids(file):
   with open(file, 'r') as f:
     for l in f:
       if l[0] == '>':
-        ids.append(l[1:])
+        if l[-2] == '/':
+          ids.append(l[1:-2])
+        else:
+          ids.append(l[1:])
   return set(ids)
 
 def recall(tp, fn):

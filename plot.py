@@ -69,12 +69,15 @@ def format_axes(ax):
 
     ax.set_xscale('log')
     ax.set_xlabel("Gap Length")
-    ax.set_ylabel("F-score")
+
+    ax.set_ylim([0.0, 1.0])
 
     return ax
 
 def avg(l): return float(sum(l)) / len(l)
 def median(l):
+    if len(l) == 1: return l[0]
+
     s = sorted(l)
     m = len(l) / 2
     if len(l) % 2 == 1:
@@ -91,25 +94,32 @@ def cleanup(dd):
             clean[length].remove(max(dd[length]))
     return clean
 
-def plot_between(ax, plot, overlap, steps=50):
-    smooth_plot = cleanup(plot)
-
-    lengths = sorted(plot.keys())
-    smooth_lengths = np.logspace(log(min(lengths), 10), log(max(lengths), 10), steps)
+def plot_between(ax, overlap, unmapped, filter, filter2, steps=50):
+    lengths = sorted(filter.keys())
+    #smooth_lengths = np.logspace(log(min(lengths), 10), log(max(lengths), 10), steps)
 
     stripe = lambda d, f: [f(d[i]) for i in lengths]
-    smooth = lambda d, f: spline(lengths, stripe(d, f), smooth_lengths)
+    #smooth = lambda d, f: spline(lengths, stripe(d, f), smooth_lengths)
 
-    ax.fill_between(smooth_lengths, smooth(smooth_plot, min), smooth(smooth_plot, max), color=tableau20[0], alpha=0.2)
-    ax.plot(smooth_lengths, smooth(plot, median), '-', smooth_lengths, smooth(overlap, median), '--')
-    ax.legend(['Filter', 'Overlap'])
+    for y, color in zip([unmapped, overlap, filter, filter2], [3, 5, 8]):
+        clean = cleanup(y)
+        ax.fill_between(lengths, stripe(clean, min),
+            stripe(clean, max), color=tableau20[color], alpha=0.15)
+
+    ax.plot(lengths, stripe(filter, median), '-',
+        lengths, stripe(overlap, median), '--',
+        lengths, stripe(unmapped, median), ':',
+        lengths, stripe(filter2, median), '-',)
+
+    ax.legend(['Filter (with unmapped)', 'Overlap', 'Unmapped', 'Filter'])
 
 # Read scores
 #          Recall  Precision  F-score
 # overlap    0        1         2
 # unmapped   3        4         5
 # filter     6        7         8
-dds = [defaultdict(lambda: defaultdict(list)) for i in range(9)]
+# filter2    9        10        11
+dds = [defaultdict(lambda: defaultdict(list)) for i in range(12)]
 
 with open(sys.argv[1], 'r') as f:
   for l in f:
@@ -120,21 +130,25 @@ with open(sys.argv[1], 'r') as f:
     mean = int(d[1])
     stddev = int(d[2])
 
-    for i in range(9):
+    for i in range(12):
         dds[i][mean][length].append(float(d[i+3]))
 
-# latexify(fig_width=6.9*3, columns=2.5, rows=1)
-# fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
-# plot_between(format_axes(ax1), dds[8][150], dds[2][150], 50)
-# plot_between(format_axes(ax2), dds[8][1500], dds[2][1500], 50)
-# plot_between(format_axes(ax3), dds[8][3000], dds[2][3000], 30)
-# plt.show()
+latexify(fig_width=6.9*3, columns=2.5, rows=1)
+fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
+for l, ax in zip([150, 1500, 3000], [ax1, ax2, ax3]):
+    ax.set_ylabel("Recall")
+    plot_between(format_axes(ax), dds[0][l], dds[3][l], dds[6][l], dds[9][l])
+    # ax.set_ylabel("Precision")
+    # plot_between(format_axes(ax), dds[1][l], dds[4][l], dds[7][l], dds[10][l])
+    # ax.set_ylabel("F-score")
+    # plot_between(format_axes(ax), dds[2][l], dds[5][l], dds[8][l], dds[11][l])
+plt.show()
 
-latexify()
-for l in [150, 1500, 3000]:
-    fig = plt.figure()
-    plot_between(format_axes(fig.add_subplot(111)), dds[8][l], dds[2][l], 50)
-    plt.tight_layout()
-    if len(sys.argv) >= 2:
-        plt.savefig(sys.argv[2] + "." + str(l) + ".pgf")
-    fig.clf()
+# latexify()
+# for l in [150, 1500, 3000]:
+#     fig = plt.figure()
+#     plot_between(format_axes(fig.add_subplot(111)), dds[8][l], dds[2][l], 50)
+#     plt.tight_layout()
+#     if len(sys.argv) >= 2:
+#         plt.savefig(sys.argv[2] + "." + str(l) + ".pgf")
+#     fig.clf()
