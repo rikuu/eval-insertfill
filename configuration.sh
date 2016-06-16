@@ -1,5 +1,7 @@
 #!/bin/bash
 
+DIR=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)
+
 # Required tools
 DWGSIM=dwgsim
 BEDTOOLS=bedtools
@@ -15,9 +17,10 @@ READLENGTH=100
 COVERAGE=30
 MEANS=(150 1500 3000)
 STDDEVS=(15 150 300)
-CONTIG=chr17
-GENOME=chr17.fa
+
 # TODO: Run fix_chr17.py ?
+GENOME=$DIR/chr17.fa
+CONTIG=chr17
 
 PREFIX=$DIR
-#DATA=$PREFIX/data/
+DATA=$PREFIX/data/

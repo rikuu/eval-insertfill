@@ -5,8 +5,6 @@ DIR=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)
 SCRIPTS=$DIR/scripts
 
 source $DIR/configuration.sh
-
-DATA=$PREFIX/data/
 OUT=$PREFIX/indel/
 
 source $SCRIPTS/gen_reads.sh
