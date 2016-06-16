@@ -1,10 +1,13 @@
 #!/bin/bash
+set -e
 
 DIR=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)
+SCRIPTS=$DIR/scripts
+
 source $DIR/configuration.sh
 
-source $DIR/gen_reads.sh
-source $DIR/gen_reference.sh
+source $SCRIPTS/gen_reads.sh
+source $SCRIPTS/gen_reference.sh
 
 while read BED; do
   CONTIG=$(echo $BED | cut -f1 -d' ')
@@ -41,11 +44,11 @@ while read BED; do
       $CONTIG $START $END > filter1.fa
 
     # Evaluate the schemes
-    OVERLAP=$(python evaluate.py aln.fa known.fa overlap.fa)
-    UNMAPPED=$(python evaluate.py aln.fa known.fa unmapped.fa)
-    FILTER=$(python evaluate.py aln.fa known.fa filter.fa)
-    FILTER1=$(python evaluate.py aln.fa known.fa filter1.fa)
+    OVERLAP=$(python $SCRIPTS/evaluate.py aln.fa known.fa overlap.fa)
+    UNMAPPED=$(python $SCRIPTS/evaluate.py aln.fa known.fa unmapped.fa)
+    FILTER=$(python $SCRIPTS/evaluate.py aln.fa known.fa filter.fa)
+    FILTER1=$(python $SCRIPTS/evaluate.py aln.fa known.fa filter1.fa)
     echo $GAPLENGTH ${MEANS[i]} ${STDDEVS[i]} $OVERLAP $UNMAPPED $FILTER $FILTER1 \
       >> results
   done
-done < tmp.gaps.bed
+done < gaps.bed

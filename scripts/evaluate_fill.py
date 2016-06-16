@@ -6,10 +6,10 @@ k = 31
 fuz = 10
 
 if len(sys.argv) < 3:
-    print 'Usage:', argv[0], ' <known.fasta> <evaluate.fasta> [<evaluate2.fasta> ...]'
-    exit(1)
+    print('Usage:', sys.argv[0], '<known.fasta> <evaluate.fasta> [<evaluate2.fasta> ...]')
+    sys.exit(1)
 
-# Computes Levenstein distance
+# Computes Levenshtein distance
 def edit_distance(a, b):
     if len(a) < len(b): return edit_distance(b, a)
     if len(b) == 0: return len(a)
@@ -37,14 +37,14 @@ def parse(file):
                 buf += line.rstrip().upper()
             else:
                 if len(buf) != 0:
-                    lines[identifier] = buf #[buf[k+fuz : -(k+fuz)]]
+                    lines[identifier] = buf
                     buf = ''
                 identifier = line.rstrip()[1:]
 
                 # Parse masking format - Might not work at some point
                 s = identifier[6:].split('-')
                 identifier = s[1] - s[0]
-    lines[identifier] = buf #[k+fuz : -(k+fuz)]
+    lines[identifier] = buf
 
     return lines
 
@@ -57,13 +57,11 @@ for f in sys.argv[2:]:
     filled = parse(f)
 
     if sorted(known.keys()) != sorted(filled.keys()):
-        print f
-        print sorted(known.keys())
-        print sorted(filled.keys())
+        print(f, '\n', sorted(known.keys()), '\n', sorted(filled.keys()))
         sys.exit(1)
 
     for i in known.keys():
         results[i] += [str(edit_distance(known[i], filled[i]))]
 
 for i in sorted(known.keys()):
-    print i, ' '.join(results[i])
+    print(i, ' '.join(results[i]))

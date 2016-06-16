@@ -43,4 +43,4 @@ tn = len((all_ids - predicted_ids).intersection((all_ids - known_ids)))
 fn = len((all_ids - predicted_ids) - (all_ids - known_ids))
 
 # Recall, Precision, F-score
-print recall(tp, fn), precision(tp, fp), fscore(tp, fn, fp)
+print(recall(tp, fn), precision(tp, fp), fscore(tp, fn, fp))

@@ -1,19 +1,19 @@
 #!/bin/bash
+set -e
 
-DIR=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)
 source $DIR/configuration.sh
 
 if [ ! -f gaps.fa ]; then
   # Create a fake assembly (masked donor genome in SV context)
-  python gap_bed.py inserts.bed gaps.bed
-  $BEDTOOLS maskfasta -fi chr17.fa -bed inserts.bed -fo assembly.fa
+  python $SCRIPTS/gap_bed.py inserts.bed gaps.bed
+  $BEDTOOLS maskfasta -fi $GENOME -bed inserts.bed -fo assembly.fa
 
   # Cut the inserts and gaps from the assembly
   $BEDTOOLS getfasta -fi assembly.fa -bed gaps.bed -fo gaps.fa
-  $BEDTOOLS getfasta -fi chr17.fa -bed gaps.bed -fo inserts.fa
+  $BEDTOOLS getfasta -fi $GENOME -bed gaps.bed -fo inserts.fa
 
   # Remove all inserts from the masked donor to create a reference genome
-  python reference.py assembly.fa reference.fa
+  python $SCRIPTS/reference.py assembly.fa reference.fa
   $BWA index reference.fa
 
   rm -f pindel.txt libraries.txt aln.*.bam
@@ -27,7 +27,7 @@ if [ ! -f gaps.fa ]; then
       $SAMTOOLS rmdup -s - - > aln."${MEANS[i]}".bam
     $SAMTOOLS index aln."${MEANS[i]}".bam
 
-    # echo -e "aln.${MEANS[i]}.bam\t${MEANS[i]}\tALN${MEANS[i]}" >> pindel.txt
+    echo -e "aln.${MEANS[i]}.bam\t${MEANS[i]}\tALN${MEANS[i]}" >> pindel.txt
     echo -e "aln.${MEANS[i]}.bam\t$READLENGTH\t${MEANS[i]}\t${STDDEVS[i]}" >> libraries.txt
   done
 done

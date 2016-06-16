@@ -100,6 +100,8 @@ with open(sys.argv[1], 'r') as f:
     dds[1][1500][length].append(norm(4))
     dds[0][3000][length].append(norm(5))
     dds[1][3000][length].append(norm(6))
+
+    # NOTE: 9000 = all reads
     dds[0][9000][length].append(norm(7))
     dds[1][9000][length].append(norm(8))
 

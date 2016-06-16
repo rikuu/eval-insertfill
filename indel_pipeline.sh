@@ -1,10 +1,13 @@
 #!/bin/bash
+set -e
 
 DIR=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)
+SCRIPTS=$DIR/scripts
+
 source $DIR/configuration.sh
 
-source $DIR/gen_reads.sh
-source $DIR/gen_reference.sh
+source $SCRIPTS/gen_reads.sh
+source $SCRIPTS/gen_reference.sh
 
 for ((i=0;i<${#MEANS[@]};++i)); do
   echo -e "Running Gap2Seq (normal-${MEANS[i]})"
@@ -21,7 +24,7 @@ $GAP2SEQ -filled tmp.filled."${MEANS[i]}".all -scaffolds gaps.fa \
 echo -e "Running filtered Gap2Seq"
 python filler.py libraries.txt
 
-python evaluate_fill.py inserts.fa \
+python $SCRIPTS/evaluate_fill.py inserts.fa \
   tmp.filled.150.normal tmp.filled.150.filter \
   tmp.filled.1500.normal tmp.filled.1500.filter \
   tmp.filled.3000.normal tmp.filled.3000.filter \

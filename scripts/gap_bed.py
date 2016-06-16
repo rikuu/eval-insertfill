@@ -41,7 +41,7 @@ for length in reversed(lengths):
     while overlap(gaps, gap):
         gap = gen(length)
     gaps += [gap]
-    print gaps
+    # print(gaps)
 
 # Write BED file
 with open(sys.argv[1], 'w') as f:

@@ -5,16 +5,16 @@ DWGSIM=dwgsim
 BEDTOOLS=bedtools
 SAMTOOLS=samtools
 BWA=bwa
-GAP2SEQ=../Gap2Seq-2.0/build/Gap2Seq
-GAPCUTTER=../Gap2Seq-2.0/build/GapCutter
-EXTRACT=../extract/extract
+GAP2SEQ=/cs/work/scratch/riqwalve/Gap2Seq-2.0/build/Gap2Seq
+GAPCUTTER=/cs/work/scratch/riqwalve/Gap2Seq-2.0/build/GapCutter
+EXTRACT=/cs/work/scratch/riqwalve/extract/extract
+PINDEL=/cs/work/scratch/riqwalve/pindel/pindel
 
-# Parameters for the testing
+# Parameters for reads
 READLENGTH=100
 COVERAGE=30
-CONTIG=chr17
 MEANS=(150 1500 3000)
 STDDEVS=(15 150 300)
-
-# Exit if any command fails
-set -e
+CONTIG=chr17
+GENOME=chr17.fa
+# TODO: Run fix_chr17.py ?
