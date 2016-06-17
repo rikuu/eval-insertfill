@@ -7,10 +7,14 @@ DWGSIM=dwgsim
 BEDTOOLS=bedtools
 SAMTOOLS=samtools
 BWA=bwa
+
 GAP2SEQ=/cs/work/scratch/riqwalve/Gap2Seq-2.0/build/Gap2Seq
 GAPCUTTER=/cs/work/scratch/riqwalve/Gap2Seq-2.0/build/GapCutter
+
 EXTRACT=/cs/work/scratch/riqwalve/extract/extract
+
 PINDEL=/cs/work/scratch/riqwalve/pindel/pindel
+PINDEL2VCF=/cs/work/scratch/riqwalve/pindel/pindel2vcf
 
 # Parameters for reads
 READLENGTH=100

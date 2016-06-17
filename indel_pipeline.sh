@@ -35,4 +35,9 @@ python $SCRIPTS/evaluate_fill.py $DATA/inserts.fa \
   tmp.filled.3000.normal tmp.filled.3000.filter \
   tmp.filled.all.normal tmp.filled.all.filter > results_fills
 
-# $PINDEL -f reference.fa -i pindel.txt -o pindel
+$PINDEL -f reference.fa -i pindel.txt -o pindel
+$PINDEL2VCF -p pindel_LI -r reference.fa -R chr17_1 -d 20160612
+python $SCRIPTS/vcf2filled.py inserts.bed pindel_LI.vcf > tmp.filled.pindel
+
+python $SCRIPTS/evaluate_fill.py $DATA/inserts.fa \
+  tmp.filled.all.normal tmp.filled.all.filter tmp.filled.pindel > results_tools
