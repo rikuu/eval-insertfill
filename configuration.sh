@@ -3,13 +3,13 @@
 DIR=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)
 
 # Required tools
-DWGSIM=dwgsim
-BEDTOOLS=bedtools
-SAMTOOLS=samtools
-BWA=bwa
+DWGSIM=/cs/work/scratch/riqwalve/DWGSIM/dwgsim
+BEDTOOLS=/cs/work/scratch/riqwalve/bedtools2/bin/bedtools
+SAMTOOLS=~/samtools/samtools
+BWA=~/bwa/bwa
 
-GAP2SEQ=/cs/work/scratch/riqwalve/Gap2Seq-2.0/build/Gap2Seq
-GAPCUTTER=/cs/work/scratch/riqwalve/Gap2Seq-2.0/build/GapCutter
+GAP2SEQ=/cs/work/scratch/riqwalve/Gap2Seq/build/Gap2Seq
+GAPCUTTER=/cs/work/scratch/riqwalve/Gap2Seq/build/GapCutter
 
 EXTRACT=/cs/work/scratch/riqwalve/extract/extract
 

@@ -61,7 +61,7 @@ def fill_gap(seq, id, scaffold, start, end, solid, k, libraries):
         'tmp.gap.' + id + '.fasta',
         'tmp.reads.' + id + '.h5'])
 
-    return (str(gap_length), str(cov), str(filled))
+    return filled
 
 def parse_gap(bed, gap, id):
     subprocess.check_call(['rm', '-f', 'tmp.gap.' + id + '.fasta'])
@@ -148,9 +148,10 @@ if __name__ == '__main__':
     parser.add_argument('-g', '--gaps')
     parser.add_argument('--async', action='store_true', default=False)
     parser.add_argument('-i', '--index', type=int, default=-1)
+    parser.add_argument('-o', '--out', type=str, default='filled.fasta')
     #parser.add_argument('--cpu')
 
-    args = parser.parse_args()
+    args = vars(parser.parse_args())
 
     # Short read libraries aligned to the scaffolds
     libraries = []
@@ -160,13 +161,14 @@ if __name__ == '__main__':
             libraries += [Library(arg[0], int(arg[1]), int(arg[2]), int(arg[3]))]
 
     if args['index'] != -1:
-        libraries = libraries[args['index']]
+        libraries = [libraries[args['index']]]
 
     if args['bed'] == None or args['gaps'] == None:
         if args['scaffolds'] != None:
             print('Cutting gaps')
             args['bed'], args['gaps'] = cut_gaps(args['scaffolds'])
         else:
+            parser.print_help()
             print('Either [-b/--bed and -g/--gaps] or [-s/--scaffolds] are required.')
             sys.exit(1)
 
@@ -180,13 +182,13 @@ if __name__ == '__main__':
     pool.join()
 
     print('Joining filled sequences')
-    join_filled(gaps+1)
+    join_filled(gaps+1, args['out'])
 
     # Merge gaps and contigs back to scaffolds here
 
     success = 0
     for fg in filled_gaps:
-        if fg[2] == 'True':
+        if fg == True:
             success += 1
 
     print('Filled ' + str(success) + ' out of ' + str(len(filled_gaps)) + ' gaps')

@@ -32,4 +32,4 @@ if [ ! -f gaps.fa ]; then
     echo -e "$DATA/aln.${MEANS[i]}.bam\t${MEANS[i]}\tALN${MEANS[i]}" >> pindel.txt
     echo -e "$DATA/aln.${MEANS[i]}.bam\t$READLENGTH\t${MEANS[i]}\t${STDDEVS[i]}" >> libraries.txt
   done
-done
+fi

@@ -3,11 +3,11 @@ import numpy as np
 from math import log
 
 if len(sys.argv) != 3:
-    print 'Usage:', sys.argv[0], '<inserts.bed> <gaps.bed>'
+    print('Usage:', sys.argv[0], '<inserts.bed> <gaps.bed>')
     sys.exit(1)
 
 # TODO: get these from input
-genome_length = 84922590
+genome_length = 83257441
 contig = 'chr17'
 
 # k+fuz

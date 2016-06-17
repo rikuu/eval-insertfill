@@ -24,7 +24,7 @@ for ((i=0;i<${#MEANS[@]};++i)); do
     # Extract all unmapped reads
     $SAMTOOLS view -f4 -b $DATA/aln."${MEANS[i]}".bam | \
       $SAMTOOLS fasta - > unmapped."${MEANS[i]}".fa
-  done
+  fi
 done
 
 while read BED; do
