@@ -7,7 +7,7 @@ cd $DATA
 
 if [ ! -f gaps.fa ]; then
   # Create a fake assembly (masked donor genome in SV context)
-  python $SCRIPTS/gap_bed.py inserts.bed gaps.bed
+  python $SCRIPTS/gap_bed.py inserts.bed gaps.bed reference.bed
   $BEDTOOLS maskfasta -fi $GENOME -bed inserts.bed -fo assembly.fa
 
   # Cut the inserts and gaps from the assembly

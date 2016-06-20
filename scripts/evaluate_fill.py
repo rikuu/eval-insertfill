@@ -43,7 +43,7 @@ def parse(file):
 
                 # Parse masking format - Might not work at some point
                 s = identifier[6:].split('-')
-                identifier = s[1] - s[0]
+                identifier = int(s[1]) - int(s[0])
     lines[identifier] = buf
 
     return lines
