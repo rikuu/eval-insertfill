@@ -10,6 +10,7 @@ OUT=$PREFIX/indel/
 source $SCRIPTS/gen_reads.sh
 source $SCRIPTS/gen_reference.sh
 
+mkdir -p $OUT || true
 cd $OUT
 
 for ((i=0;i<${#MEANS[@]};++i)); do
@@ -22,7 +23,8 @@ for ((i=0;i<${#MEANS[@]};++i)); do
   if [ ! -f tmp.filled."${MEANS[i]}".filter ]; then
     echo -e "Running Gap2Seq (filter-${MEANS[i]})"
     python $SCRIPTS/filler.py -l $DATA/libraries.txt -g $DATA/gaps.fa \
-      -b $DATA/gaps.bed -i "$i" -o tmp.filled."${MEANS[i]}".filter -t $THREADS
+      -b $DATA/breakpoints.bed -i "$i" -o tmp.filled."${MEANS[i]}".filter \
+      -t $THREADS
   fi
 done
 
@@ -40,7 +42,7 @@ fi
 if [ ! -f tmp.filled.all.filter ]; then
   echo -e "Running Gap2Seq (filter-all)"
   python $SCRIPTS/filler.py -l $DATA/libraries.txt -g $DATA/gaps.fa \
-    -b $DATA/gaps.bed -o tmp.filled.all.filter -t $THREADS
+    -b $DATA/breakpoints.bed -o tmp.filled.all.filter -t $THREADS
 fi
 
 python $SCRIPTS/evaluate_fill.py $DATA/inserts.fa \

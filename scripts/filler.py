@@ -39,7 +39,7 @@ def fill_gap(seq, id, scaffold, start, end, solid, k, libraries):
         gap_data = scaffold + ' ' + str(start) + ' ' + str(end)
         for lib in libraries:
             subprocess.check_call(extract + lib.data() + gap_data + \
-                ' >> tmp.reads.' + id + '.fasta', shell=True,
+                ' 1 1 25 >> tmp.reads.' + id + '.fasta', shell=True,
                 stderr=f)
 
     # Run Gap2Seq on the gap with the filtered reads

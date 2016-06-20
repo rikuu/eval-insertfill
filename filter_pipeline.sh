@@ -10,52 +10,80 @@ OUT=$PREFIX/filter/
 source $SCRIPTS/gen_reads.sh
 source $SCRIPTS/gen_reference.sh
 
+mkdir -p $OUT || true
 cd $OUT
 
 for ((i=0;i<${#MEANS[@]};++i)); do
+  # Extract all reads
   if [ ! -f aln."${MEANS[i]}".fa ]; then
-    # Extract all reads
     $SAMTOOLS fasta $DATA/aln."${MEANS[i]}".bam > aln."${MEANS[i]}".fa
+  fi
 
-    # Extract all known gap-covering reads
-    $SAMTOOLS view -b -L tmp.bed $DATA/known_aln"$i".bam | \
-      $SAMTOOLS fasta - > known."${MEANS[i]}".fa
-
-    # Extract all unmapped reads
-    $SAMTOOLS view -f4 -b $DATA/aln."${MEANS[i]}".bam | \
+  # Extract all unmapped reads
+  if [ ! -f unmapped."${MEANS[i]}".fa ]; then
+    $SAMTOOLS view -f4 -u $DATA/aln."${MEANS[i]}".bam | \
       $SAMTOOLS fasta - > unmapped."${MEANS[i]}".fa
   fi
 done
 
+GAPLENGTHS=()
 while read BED; do
   CONTIG=$(echo $BED | cut -f1 -d' ')
   START=$(echo $BED | cut -f2 -d' ')
   END=$(echo $BED | cut -f3 -d' ')
 
-  echo -e "$CONTIG\t$START\t$END" > tmp.bed
-
   GAPLENGTH=$(($END - $START - 82))
+  GAPLENGTHS+=($GAPLENGTH)
+
+  for ((i=0;i<${#MEANS[@]};++i)); do
+    # Extract all known gap-covering reads
+    if [ ! -f known."$GAPLENGTH"."${MEANS[i]}".fa ]; then
+      $SAMTOOLS view -u $DATA/known_aln"$i".bam "$CONTIG:$START-$END" | \
+        $SAMTOOLS fasta - > known."$GAPLENGTH"."${MEANS[i]}".fa
+    fi
+  done
+done < $DATA/gaps.bed
+
+I=0
+while read BED; do
+  CONTIG=$(echo $BED | cut -f1 -d' ')
+  START=$(echo $BED | cut -f2 -d' ')
+  END=$(echo $BED | cut -f3 -d' ')
+
+  GAPLENGTH=GAPLENGTHS[$I]
+  I=$(($I + 1))
 
   for ((i=0;i<${#MEANS[@]};++i)); do
     # Extract all overlapping reads
-    $SAMTOOLS view -F4 -b -L tmp.bed $DATA/aln."${MEANS[i]}".bam | \
-      $SAMTOOLS fasta - > overlap.fa
+    if [ ! -f overlap."$GAPLENGTH"."${MEANS[i]}".fa ]; then
+      $SAMTOOLS view -u $DATA/aln."${MEANS[i]}".bam "$CONTIG:$START-$END" | \
+        $SAMTOOLS fasta - > overlap."$GAPLENGTH"."${MEANS[i]}".fa
+    fi
 
     # Extract filtered reads
-    LD_PRELOAD=~/htslib/libhts.so.1 $EXTRACT $DATA/aln."${MEANS[i]}".bam \
-      $READLENGTH ${MEANS[i]} ${STDDEVS[i]} \
-      $CONTIG $START $END > filter.fa
-
-    LD_PRELOAD=~/htslib/libhts.so.1 $EXTRACT1 $DATA/aln."${MEANS[i]}".bam \
-      $READLENGTH ${MEANS[i]} ${STDDEVS[i]} \
-      $CONTIG $START $END > filter1.fa
+    if [ ! -f filter."$GAPLENGTH"."${MEANS[i]}".fa ]; then
+      $EXTRACT $DATA/aln."${MEANS[i]}".bam \
+        $READLENGTH ${MEANS[i]} ${STDDEVS[i]} \
+        $CONTIG $START $END 1 1 25 > filter."$GAPLENGTH"."${MEANS[i]}".fa
+    fi
 
     # Evaluate the schemes
-    OVERLAP=$(python $SCRIPTS/evaluate.py aln."${MEANS[i]}".fa known."${MEANS[i]}".fa overlap.fa)
-    UNMAPPED=$(python $SCRIPTS/evaluate.py aln."${MEANS[i]}".fa known."${MEANS[i]}".fa unmapped.fa)
-    FILTER=$(python $SCRIPTS/evaluate.py aln."${MEANS[i]}".fa known."${MEANS[i]}".fa filter.fa)
-    FILTER1=$(python $SCRIPTS/evaluate.py aln."${MEANS[i]}".fa known."${MEANS[i]}".fa filter1.fa)
-    echo $GAPLENGTH ${MEANS[i]} ${STDDEVS[i]} $OVERLAP $UNMAPPED $FILTER $FILTER1 \
-      >> results
+    OVERLAP=$(python $SCRIPTS/evaluate.py \
+      aln."${MEANS[i]}".fa \
+      known."$GAPLENGTH"."${MEANS[i]}".fa \
+      overlap."$GAPLENGTH"."${MEANS[i]}".fa)
+
+    UNMAPPED=$(python $SCRIPTS/evaluate.py \
+      aln."${MEANS[i]}".fa \
+      known."$GAPLENGTH"."${MEANS[i]}".fa \
+      unmapped."${MEANS[i]}".fa)
+
+    FILTER=$(python $SCRIPTS/evaluate.py \
+      aln."${MEANS[i]}".fa \
+      known."$GAPLENGTH"."${MEANS[i]}".fa \
+      filter."$GAPLENGTH"."${MEANS[i]}".fa)
+
+    echo $GAPLENGTH ${MEANS[i]} ${STDDEVS[i]} \
+      $OVERLAP $UNMAPPED $FILTER >> results
   done
-done < $DATA/gaps.bed
+done < $DATA/breakpoints.bed

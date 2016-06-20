@@ -3,7 +3,7 @@ import numpy as np
 from math import log
 
 if len(sys.argv) != 3:
-    print('Usage:', sys.argv[0], '<inserts.bed> <gaps.bed> <reference.bed>')
+    print('Usage:', sys.argv[0], '<inserts.bed> <gaps.bed> <breakpoints.bed>')
     sys.exit(1)
 
 # TODO: get these from input
@@ -43,6 +43,8 @@ for length in reversed(lengths):
     gaps += [gap]
     # print(gaps)
 
+gaps = sorted(gaps, key = lambda g: g[0])
+
 # Write BED file
 with open(sys.argv[1], 'w') as f:
     for start, end in gaps:
@@ -53,12 +55,10 @@ with open(sys.argv[2], 'w') as f:
     for start, end in gaps:
         f.write('%s\t%i\t%i\n' % (contig, start, end))
 
-# Write BED file with inserts removed
+# Write insertion breakpoints in BED format
 with open(sys.argv[3], 'w') as f:
-    sorted_gaps = sorted(gaps, key = lambda g: g[0])
     accum = 0
     for start, end in gaps:
-        f.write('%s\t%i\t%i\n' % (contig, start+flank_length-accum,
-            end-flank_length-accum))
-        accum += (end - start) - (2*flank_length)
-        
+        f.write('%s\t%i\t%i\n' % (contig, start-accum,
+            start-accum+(2*flank_length)))
+        accum += (end - start)

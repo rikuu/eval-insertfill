@@ -10,6 +10,7 @@ OUT=$PREFIX/tools/
 source $SCRIPTS/gen_reads.sh
 source $SCRIPTS/gen_reference.sh
 
+mkdir -p $OUT || true
 cd $OUT
 
 if [ ! -f tmp.filled.all.normal ]; then
@@ -26,7 +27,7 @@ fi
 if [ ! -f tmp.filled.all.filter ]; then
   echo -e "Running Gap2Seq (filter-all)"
   python $SCRIPTS/filler.py -l $DATA/libraries.txt -g $DATA/gaps.fa \
-    -b $DATA/gaps.bed -o tmp.filled.all.filter -t $THREADS
+    -b $DATA/breakpoints.bed -o tmp.filled.all.filter -t $THREADS
 fi
 
 if [ ! -f tmp.filled.pindel ]; then
