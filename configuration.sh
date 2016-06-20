@@ -15,6 +15,7 @@ EXTRACT=/cs/work/scratch/riqwalve/extract/extract
 
 PINDEL=/cs/work/scratch/riqwalve/pindel/pindel
 PINDEL2VCF=/cs/work/scratch/riqwalve/pindel/pindel2vcf
+MINDTHEGAP=cs/work/scratch/riqwalve/MindTheGap/build/bin/MindTheGap
 
 THREADS=16
 
