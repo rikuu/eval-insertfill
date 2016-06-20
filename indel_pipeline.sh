@@ -16,27 +16,31 @@ for ((i=0;i<${#MEANS[@]};++i)); do
   if [ ! -f tmp.filled."${MEANS[i]}".normal ]; then
     echo -e "Running Gap2Seq (normal-${MEANS[i]})"
     $GAP2SEQ -filled tmp.filled."${MEANS[i]}".normal -scaffolds $DATA/gaps.fa \
-      -reads $DATA/reads"$i"_pe1.fq,$DATA/reads"$i"_pe2.fq
+      -reads $DATA/reads"$i"_pe1.fq,$DATA/reads"$i"_pe2.fq -nb-cores $THREADS
   fi
 
   if [ ! -f tmp.filled."${MEANS[i]}".filter ]; then
     echo -e "Running Gap2Seq (filter-${MEANS[i]})"
     python $SCRIPTS/filler.py -l $DATA/libraries.txt -g $DATA/gaps.fa \
-      -bed $DATA/gaps.bed -i "$i" -o tmp.filled."${MEANS[i]}".filter
+      -b $DATA/gaps.bed -i "$i" -o tmp.filled."${MEANS[i]}".filter -t $THREADS
   fi
 done
 
 if [ ! -f tmp.filled.all.filter ]; then
-  # TODO: Don't hardcode these, figure out how not to
+  READS="$DATA/reads0_pe1.fq,$DATA/reads0_pe2.fq"
+  for ((i=1;i<${#MEANS[@]};++i)); do
+    READS="$READS,$DATA/reads'$i'_pe1.fq,$DATA/reads'$i'_pe2.fq"
+  done
+
   echo -e "Running Gap2Seq (normal-all)"
-  $GAP2SEQ -filled tmp.filled."${MEANS[i]}".all -scaffolds $DATA/gaps.fa \
-    -reads $DATA/reads0_pe1.fq,$DATA/reads0_pe2.fq,$DATA/reads1_pe1.fq,$DATA/reads1_pe2.fq,$DATA/reads2_pe1.fq,$DATA/reads2_pe2.fq
+  $GAP2SEQ -filled tmp.filled.all.normal -scaffolds $DATA/gaps.fa \
+    -reads $READS -nb-cores $THREADS
 fi
 
 if [ ! -f tmp.filled.all.filter ]; then
   echo -e "Running Gap2Seq (filter-all)"
   python $SCRIPTS/filler.py -l libraries.txt -g $DATA/gaps.fa \
-    -bed $DATA/gaps.bed -o tmp.filled.all.filter
+    -b $DATA/gaps.bed -o tmp.filled.all.filter -t $THREADS
 fi
 
 python $SCRIPTS/evaluate_fill.py $DATA/inserts.fa \

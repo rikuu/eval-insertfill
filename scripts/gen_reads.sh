@@ -23,7 +23,7 @@ for ((i=0;i<${#MEANS[@]};++i)); do
 
   # Map-sort-index the reads
   if [ ! -f known_aln"$i".bam ]; then
-    $BWA mem -t 16 -I ${MEANS[i]},${STDDEVS[i]} $GENOME reads"$i"_pe1.fq \
+    $BWA mem -t $THREADS -I ${MEANS[i]},${STDDEVS[i]} $GENOME reads"$i"_pe1.fq \
         reads"$i"_pe2.fq | \
       $SAMTOOLS view -Shu - | \
       $SAMTOOLS sort - | \

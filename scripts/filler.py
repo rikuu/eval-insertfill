@@ -6,9 +6,9 @@ import sys, argparse
 # Required tools
 samtools = '~/samtools/samtools'
 bwa = '~/bwa/bwa'
-gapcutter = '/cs/work/scratch/riqwalve/Gap2Seq-2.0/build/GapCutter'
-gap2seq = '/cs/work/scratch/riqwalve/Gap2Seq-2.0/build/Gap2Seq'
-extract = '/cs/work/scratch/riqwalve/extract/extract'
+gapcutter = '/cs/work/scratch/riqwalve/Gap2Seq/build/GapCutter'
+gap2seq = '/cs/work/scratch/riqwalve/Gap2Seq/build/Gap2Seq'
+extract = 'LD_PRELOAD=~/htslib/libhts.so.1 /cs/work/scratch/riqwalve/extract/extract'
 
 # An object for holding all the data for a library of short reads
 class Library:
@@ -54,7 +54,9 @@ def fill_gap(seq, id, scaffold, start, end, solid, k, libraries):
             stderr=subprocess.STDOUT, stdout=f)
 
     # Pessimistic
-    filled = False #int(proc.stdout.split('\n')[-3][7:8]) == 1
+    filled = False
+    with open('tmp.gap2seq.' + id + '.log', 'r') as f:
+        filled = f.readlines()[-2][7:8] == '1'
 
     subprocess.check_call(['rm', '-f',
         'tmp.reads.' + id + '.fasta',
@@ -115,7 +117,7 @@ def start_fillers(bed_file, gap_file, libraries, pool=None, async=False, k=31, s
                 count_filled(fill_gap(seq, str(gap_id), scaffold,
                     start, end, solid, k, libraries))
 
-    return gap_id
+    return gap_id+1
 
 def join_filled(gaps, out='filled.fasta'):
     subprocess.check_call('rm -f ' + out + ' && touch ' + out, shell=True)
@@ -149,7 +151,7 @@ if __name__ == '__main__':
     parser.add_argument('--async', action='store_true', default=False)
     parser.add_argument('-i', '--index', type=int, default=-1)
     parser.add_argument('-o', '--out', type=str, default='filled.fasta')
-    #parser.add_argument('--cpu')
+    parser.add_argument('-t', '--threads', type=int, default=0)
 
     args = vars(parser.parse_args())
 
@@ -172,17 +174,23 @@ if __name__ == '__main__':
             print('Either [-b/--bed and -g/--gaps] or [-s/--scaffolds] are required.')
             sys.exit(1)
 
-    pool = multiprocessing.Pool(16)
+    pool = None
+    if args['threads'] < 2:
+        args['async'] = False
+    else:
+        args['async'] = True
+        pool = multiprocessing.Pool(args['threads'])
 
     print('Starting gapfillers')
     gaps = start_fillers(args['bed'], args['gaps'], libraries,
         pool=pool, async=args['async'])
 
-    pool.close()
-    pool.join()
+    if pool != None:
+        pool.close()
+        pool.join()
 
     print('Joining filled sequences')
-    join_filled(gaps+1, args['out'])
+    join_filled(gaps, args['out'])
 
     # Merge gaps and contigs back to scaffolds here
 

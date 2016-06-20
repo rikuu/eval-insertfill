@@ -16,6 +16,8 @@ EXTRACT=/cs/work/scratch/riqwalve/extract/extract
 PINDEL=/cs/work/scratch/riqwalve/pindel/pindel
 PINDEL2VCF=/cs/work/scratch/riqwalve/pindel/pindel2vcf
 
+THREADS=16
+
 # Parameters for reads
 READLENGTH=100
 COVERAGE=30
@@ -27,4 +29,4 @@ GENOME=$DIR/chr17.fa
 CONTIG=chr17
 
 PREFIX=$DIR
-DATA=$PREFIX/data/
+DATA=$PREFIX/data

@@ -22,7 +22,7 @@ if [ ! -f gaps.fa ]; then
   for ((i=0;i<${#MEANS[@]};++i)); do
     # Map-sort-index reads to the reference genome
     echo -e "Aligning reads (${MEANS[i]})"
-    $BWA mem -t 16 -I ${MEANS[i]},${STDDEVS[i]} reference.fa \
+    $BWA mem -t $THREADS -I ${MEANS[i]},${STDDEVS[i]} reference.fa \
         reads"$i"_pe1.fq reads"$i"_pe2.fq | \
       $SAMTOOLS view -Shu - | \
       $SAMTOOLS sort - | \
