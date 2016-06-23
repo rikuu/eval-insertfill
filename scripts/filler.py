@@ -30,17 +30,22 @@ def count_filled(result):
     print
 
 # Runs all the read filtering and gap filling for a single gap
-def fill_gap(seq, id, scaffold, start, end, length, solid, k, libraries):
+def fill_gap(libraries, seq, id,
+        scaffold, start, end, length,
+        solid, k, threshold):
     # Cleanup, just to be sure
     subprocess.check_call(['rm', '-f', 'tmp.reads.' + id + '.fasta'])
 
     # Extract reads
     with open('tmp.extract.' + id + '.log', 'w') as f:
+        unmapped = (threshold != -1)
+        exact = 1 # Exact is currently faster and more accurate
+
         gap_data = '%s %i %i %i' % (scaffold, start, end, length)
+        extract_params = '%i %i %i' % (exact, unmapped, threshold)
         for lib in libraries:
-            # TODO: Take '1 1 25' from input
             subprocess.check_call(extract + lib.data() + gap_data + \
-                ' 1 1 25 >> tmp.reads.' + id + '.fasta', shell=True,
+                extract_params + ' >> tmp.reads.' + id + '.fasta', shell=True,
                 stderr=f)
 
     # Run Gap2Seq on the gap with the filtered reads
@@ -92,7 +97,7 @@ def parse_gap(bed, gap, id, gap_lengths=None):
 
 # Starts multiple gapfilling processes in parallel
 def start_fillers(bed, gaps, libraries, pool=None, async=False,
-        gap_lengths=None, k=31, solid=2):
+        gap_lengths=None, k=31, solid=2, threshold=25):
     if async: assert(pool != None)
 
     gap_id = 0
@@ -108,25 +113,27 @@ def start_fillers(bed, gaps, libraries, pool=None, async=False,
                 parse_gap(bed, copy, str(gap_id), gap_lengths)
 
             if async:
-                pool.apply_async(fill_gap, args=([copy, str(gap_id),
-                    scaffold, start, end, length, solid, k, libraries]),
+                pool.apply_async(fill_gap, args=([libraries, copy, str(gap_id),
+                    scaffold, start, end, length, solid, k, threshold]),
                     callback=count_filled)
             else:
-                count_filled(fill_gap(copy, str(gap_id), scaffold,
-                    start, end, length, solid, k, libraries))
+                count_filled(fill_gap(libraries, copy, str(gap_id), scaffold,
+                    start, end, length, solid, k, threshold))
 
             gap_id += 1
             seq = ''
         seq += gap
 
-    scaffold, start, end = parse_gap(bed, seq, str(gap_id))
+    scaffold, start, end, length = \
+        parse_gap(bed, copy, str(gap_id), gap_lengths)
+
     if async:
-        pool.apply_async(fill_gap, args=([seq, str(gap_id),
-            scaffold, start, end, length, solid, k, libraries]),
+        pool.apply_async(fill_gap, args=([libraries, seq, str(gap_id),
+            scaffold, start, end, length, solid, k, threshold]),
             callback=count_filled)
     else:
-        count_filled(fill_gap(seq, str(gap_id), scaffold,
-            start, end, length, solid, k, libraries))
+        count_filled(fill_gap(libraries, seq, str(gap_id), scaffold,
+            start, end, length, solid, k, threshold))
 
     return gap_id+1
 
@@ -159,16 +166,19 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--libraries', required=True)
     parser.add_argument('-i', '--index', type=int, default=-1)
 
+    parser.add_argument('-k', type=int, default=31)
+    parser.add_argument('--solid', type=int, default=2)
+
     parser.add_argument('-s', '--scaffolds', type=argparse.FileType('r'))
 
     parser.add_argument('-b', '--bed', type=argparse.FileType('r'))
     parser.add_argument('-g', '--gaps', type=argparse.FileType('r'))
 
     parser.add_argument('-G', '--gap-lengths', type=argparse.FileType('r'))
-    # parser.add_argument('-u', '--unmapped-threshold', type=int, default=-1)
+    parser.add_argument('-u', '--unmapped-threshold', type=int, default=25)
 
     parser.add_argument('--async', action='store_true', default=False)
-    parser.add_argument('-t', '--threads', type=int, default=0)
+    parser.add_argument('-t', '--threads', type=int, default=1)
 
     args = vars(parser.parse_args())
 
@@ -200,7 +210,8 @@ if __name__ == '__main__':
 
     print('Starting gapfillers')
     gaps = start_fillers(args['bed'], args['gaps'], libraries,
-        pool=pool, async=args['async'], gap_lengths=args['gap_lengths'])
+        pool=pool, async=args['async'], gap_lengths=args['gap_lengths'],
+        k=args['k'], solid=args['solid'], threshold=args['unmapped_threshold'])
 
     bed.close()
     gaps.close()

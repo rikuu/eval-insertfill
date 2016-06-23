@@ -64,7 +64,7 @@ while read BED; do
     if [ ! -f filter."$GAPLENGTH"."${MEANS[i]}".fa ]; then
       $EXTRACT $DATA/aln."${MEANS[i]}".bam \
         $READLENGTH ${MEANS[i]} ${STDDEVS[i]} \
-        $CONTIG $START $END 1 1 25 $GAPLENGTH \
+        $CONTIG $START $END $GAPLENGTH 1 1 25 \
         > filter."$GAPLENGTH"."${MEANS[i]}".fa
     fi
 
