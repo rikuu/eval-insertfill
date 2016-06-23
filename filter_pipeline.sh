@@ -69,22 +69,13 @@ while read BED; do
     fi
 
     # Evaluate the schemes
-    OVERLAP=$(python $SCRIPTS/evaluate.py \
+    RESULTS=$(python $SCRIPTS/evaluate.py \
       aln."${MEANS[i]}".fa \
       known."$GAPLENGTH"."${MEANS[i]}".fa \
-      overlap."$GAPLENGTH"."${MEANS[i]}".fa)
-
-    UNMAPPED=$(python $SCRIPTS/evaluate.py \
-      aln."${MEANS[i]}".fa \
-      known."$GAPLENGTH"."${MEANS[i]}".fa \
-      unmapped."${MEANS[i]}".fa)
-
-    FILTER=$(python $SCRIPTS/evaluate.py \
-      aln."${MEANS[i]}".fa \
-      known."$GAPLENGTH"."${MEANS[i]}".fa \
+      overlap."$GAPLENGTH"."${MEANS[i]}".fa \
+      unmapped."${MEANS[i]}".fa \
       filter."$GAPLENGTH"."${MEANS[i]}".fa)
 
-    echo $GAPLENGTH ${MEANS[i]} ${STDDEVS[i]} \
-      $OVERLAP $UNMAPPED $FILTER >> results
+    echo $GAPLENGTH ${MEANS[i]} ${STDDEVS[i]} $RESULTS >> results
   done
 done < $DATA/breakpoints.bed
