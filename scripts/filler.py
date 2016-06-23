@@ -213,9 +213,9 @@ if __name__ == '__main__':
         pool=pool, async=args['async'], gap_lengths=args['gap_lengths'],
         k=args['k'], solid=args['solid'], threshold=args['unmapped_threshold'])
 
-    bed.close()
-    gaps.close()
-    gap_lengths.close()
+    args['bed'].close()
+    args['gaps'].close()
+    args['gap_lengths'].close()
 
     if pool != None:
         pool.close()

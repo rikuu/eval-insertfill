@@ -25,6 +25,10 @@ COVERAGE=30
 MEANS=(150 1500 3000)
 STDDEVS=(15 150 300)
 
+# Threshold for using unmapped reads in filtering
+# Should probably be close but less than $COVERAGE
+THRESHOLD=25
+
 # TODO: Run fix_chr17.py ?
 GENOME=$DIR/chr17.fa
 CONTIG=chr17
