@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-
 import subprocess, multiprocessing
-import sys, argparse
 
 # Required tools
 samtools = '~/samtools/samtools'
@@ -30,7 +28,7 @@ def count_filled(result):
     print
 
 # Runs all the read filtering and gap filling for a single gap
-def fill_gap(libraries, seq, id,
+def fill_gap(libraries, id,
         scaffold, start, end, length,
         solid, k, threshold):
     # Cleanup, just to be sure
@@ -87,17 +85,14 @@ def parse_gap(bed, gap, id, gap_lengths=None):
     start = int(gap_data[1])
     end = int(gap_data[2])
 
-    # Parse gap length
-    length = end - start
-    if gap_lengths != None:
-        gap_data = gap_lengths.readline().rstrip().split('\t')
-        length = int(gap_data[2]) - int(gap_data[1])
+    # TODO: Count Ns in gap for accuracy
+    length = len(gap) - 82
 
     return scaffold, start, end, length
 
 # Starts multiple gapfilling processes in parallel
 def start_fillers(bed, gaps, libraries, pool=None, async=False,
-        gap_lengths=None, k=31, solid=2, threshold=25):
+        k=31, solid=2, threshold=25):
     if async: assert(pool != None)
 
     gap_id = 0
@@ -110,14 +105,14 @@ def start_fillers(bed, gaps, libraries, pool=None, async=False,
             copy = ''.join(seq)
 
             scaffold, start, end, length = \
-                parse_gap(bed, copy, str(gap_id), gap_lengths)
+                parse_gap(bed, copy, str(gap_id))
 
             if async:
-                pool.apply_async(fill_gap, args=([libraries, copy, str(gap_id),
+                pool.apply_async(fill_gap, args=([libraries, str(gap_id),
                     scaffold, start, end, length, solid, k, threshold]),
                     callback=count_filled)
             else:
-                count_filled(fill_gap(libraries, copy, str(gap_id), scaffold,
+                count_filled(fill_gap(libraries, str(gap_id), scaffold,
                     start, end, length, solid, k, threshold))
 
             gap_id += 1
@@ -125,14 +120,14 @@ def start_fillers(bed, gaps, libraries, pool=None, async=False,
         seq += gap
 
     scaffold, start, end, length = \
-        parse_gap(bed, copy, str(gap_id), gap_lengths)
+        parse_gap(bed, seq, str(gap_id))
 
     if async:
-        pool.apply_async(fill_gap, args=([libraries, seq, str(gap_id),
+        pool.apply_async(fill_gap, args=([libraries, str(gap_id),
             scaffold, start, end, length, solid, k, threshold]),
             callback=count_filled)
     else:
-        count_filled(fill_gap(libraries, seq, str(gap_id), scaffold,
+        count_filled(fill_gap(libraries, str(gap_id), scaffold,
             start, end, length, solid, k, threshold))
 
     return gap_id+1
@@ -153,18 +148,23 @@ def cut_gaps(scaffolds):
     subprocess.check_call(['rm', '-f', contigs_file, gap_file, bed_file])
 
     subprocess.check_call([gapcutter,
-        '-scaffolds', scaffolds,
-        '-gaps', gap_file,
-        '-contigs', contigs_file,
-        '-bed', bed_file], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            '-scaffolds', scaffolds,
+            '-gaps', gap_file,
+            '-contigs', contigs_file,
+            '-bed', bed_file],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    return bed_file, gap_file
+    return open(bed_file, 'r'), open(gap_file, 'r')
 
 if __name__ == '__main__':
+    import argparse
+
     parser = argparse.ArgumentParser(description='Run Gap2Seq with read filtering.')
     parser.add_argument('-o', '--out', type=str, default='filled.fasta')
     parser.add_argument('-l', '--libraries', required=True)
     parser.add_argument('-i', '--index', type=int, default=-1)
+    parser.add_argument('-t', '--threads', type=int, default=1)
+    parser.add_argument('-u', '--unmapped-threshold', type=int, default=25)
 
     parser.add_argument('-k', type=int, default=31)
     parser.add_argument('--solid', type=int, default=2)
@@ -173,12 +173,6 @@ if __name__ == '__main__':
 
     parser.add_argument('-b', '--bed', type=argparse.FileType('r'))
     parser.add_argument('-g', '--gaps', type=argparse.FileType('r'))
-
-    parser.add_argument('-G', '--gap-lengths', type=argparse.FileType('r'))
-    parser.add_argument('-u', '--unmapped-threshold', type=int, default=25)
-
-    parser.add_argument('--async', action='store_true', default=False)
-    parser.add_argument('-t', '--threads', type=int, default=1)
 
     args = vars(parser.parse_args())
 
@@ -199,36 +193,26 @@ if __name__ == '__main__':
         else:
             parser.print_help()
             print('Either [-b/--bed and -g/--gaps] or [-s/--scaffolds] are required.')
-            sys.exit(1)
+            exit(1)
 
-    pool = None
-    if args['threads'] < 2:
-        args['async'] = False
-    else:
-        args['async'] = True
-        pool = multiprocessing.Pool(args['threads'])
+    pool = multiprocessing.Pool(args['threads'])
 
     print('Starting gapfillers')
     gaps = start_fillers(args['bed'], args['gaps'], libraries,
-        pool=pool, async=args['async'], gap_lengths=args['gap_lengths'],
-        k=args['k'], solid=args['solid'], threshold=args['unmapped_threshold'])
+        pool=pool, async=(args['threads'] > 1),
+        k=args['k'], solid=args['solid'],
+        threshold=args['unmapped_threshold'])
 
     args['bed'].close()
     args['gaps'].close()
-    args['gap_lengths'].close()
 
-    if pool != None:
-        pool.close()
-        pool.join()
+    pool.close()
+    pool.join()
 
     print('Joining filled sequences')
     join_filled(gaps, args['out'])
 
-    # Merge gaps and contigs back to scaffolds here
+    # TODO: Merge gaps and contigs back to scaffolds here if cut
 
-    success = 0
-    for fg in filled_gaps:
-        if fg == True:
-            success += 1
-
-    print('Filled ' + str(success) + ' out of ' + str(len(filled_gaps)) + ' gaps')
+    num_success = sum([1 for gap in filled_gaps if gap == True])
+    print('Filled %i out of %i gaps' % (num_success, len(filled_gaps)))
