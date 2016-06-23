@@ -1,7 +1,4 @@
 *.DS_Store
 
-*.fa
-*.fai
-
-results
-results_fills
+*.fa*
+results*

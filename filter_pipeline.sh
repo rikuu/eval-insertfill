@@ -50,7 +50,7 @@ while read BED; do
   START=$(echo $BED | cut -f2 -d' ')
   END=$(echo $BED | cut -f3 -d' ')
 
-  GAPLENGTH=GAPLENGTHS[$I]
+  GAPLENGTH=${GAPLENGTHS[I]}
   I=$(($I + 1))
 
   for ((i=0;i<${#MEANS[@]};++i)); do
@@ -64,7 +64,8 @@ while read BED; do
     if [ ! -f filter."$GAPLENGTH"."${MEANS[i]}".fa ]; then
       $EXTRACT $DATA/aln."${MEANS[i]}".bam \
         $READLENGTH ${MEANS[i]} ${STDDEVS[i]} \
-        $CONTIG $START $END 1 1 25 > filter."$GAPLENGTH"."${MEANS[i]}".fa
+        $CONTIG $START $END 1 1 25 $GAPLENGTH \
+        > filter."$GAPLENGTH"."${MEANS[i]}".fa
     fi
 
     # Evaluate the schemes

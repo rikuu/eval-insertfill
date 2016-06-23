@@ -31,7 +31,7 @@ done
 if [ ! -f tmp.filled.all.normal ]; then
   READS="$DATA/reads0_pe1.fq,$DATA/reads0_pe2.fq"
   for ((i=1;i<${#MEANS[@]};++i)); do
-    READS="$READS,$DATA/reads'$i'_pe1.fq,$DATA/reads'$i'_pe2.fq"
+    READS="$READS,$DATA/reads"$i"_pe1.fq,$DATA/reads"$i"_pe2.fq"
   done
 
   echo -e "Running Gap2Seq (normal-all)"

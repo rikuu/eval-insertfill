@@ -94,24 +94,23 @@ def cleanup(dd):
             clean[length].remove(max(dd[length]))
     return clean
 
-def plot_between(ax, overlap, unmapped, filter, filter2, steps=50):
+def plot_between(ax, overlap, unmapped, filter, steps=50):
     lengths = sorted(filter.keys())
     #smooth_lengths = np.logspace(log(min(lengths), 10), log(max(lengths), 10), steps)
 
     stripe = lambda d, f: [f(d[i]) for i in lengths]
     #smooth = lambda d, f: spline(lengths, stripe(d, f), smooth_lengths)
 
-    for y, color in zip([unmapped, overlap, filter, filter2], [3, 5, 8]):
+    for y, color in zip([filter, overlap, unmapped], [3, 5, 8]):
         clean = cleanup(y)
-        ax.fill_between(lengths, stripe(clean, min),
-            stripe(clean, max), color=tableau20[color], alpha=0.15)
+        ax.fill_between(lengths, stripe(clean, min), stripe(clean, max),
+            color=tableau20[color], alpha=0.15)
 
     ax.plot(lengths, stripe(filter, median), '-',
         lengths, stripe(overlap, median), '--',
-        lengths, stripe(unmapped, median), ':',
-        lengths, stripe(filter2, median), '-',)
+        lengths, stripe(unmapped, median), ':')
 
-    ax.legend(['Filter (with unmapped)', 'Overlap', 'Unmapped', 'Filter'])
+    ax.legend(['Filter (with unmapped)', 'Overlap', 'Unmapped'])
 
 # Read scores
 #          Recall  Precision  F-score
@@ -119,7 +118,7 @@ def plot_between(ax, overlap, unmapped, filter, filter2, steps=50):
 # unmapped   3        4         5
 # filter     6        7         8
 # filter2    9        10        11
-dds = [defaultdict(lambda: defaultdict(list)) for i in range(12)]
+dds = [defaultdict(lambda: defaultdict(list)) for i in range(9)]
 
 with open(sys.argv[1], 'r') as f:
   for l in f:
@@ -130,18 +129,18 @@ with open(sys.argv[1], 'r') as f:
     mean = int(d[1])
     stddev = int(d[2])
 
-    for i in range(12):
+    for i in range(9):
         dds[i][mean][length].append(float(d[i+3]))
 
 latexify(fig_width=6.9*3, columns=2.5, rows=1)
 fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
 for l, ax in zip([150, 1500, 3000], [ax1, ax2, ax3]):
     ax.set_ylabel("Recall")
-    plot_between(format_axes(ax), dds[0][l], dds[3][l], dds[6][l], dds[9][l])
+    plot_between(format_axes(ax), dds[0][l], dds[3][l], dds[6][l])#, dds[9][l])
     # ax.set_ylabel("Precision")
-    # plot_between(format_axes(ax), dds[1][l], dds[4][l], dds[7][l], dds[10][l])
+    # plot_between(format_axes(ax), dds[1][l], dds[4][l], dds[7][l])#, dds[10][l])
     # ax.set_ylabel("F-score")
-    # plot_between(format_axes(ax), dds[2][l], dds[5][l], dds[8][l], dds[11][l])
+    # plot_between(format_axes(ax), dds[2][l], dds[5][l], dds[8][l])#, dds[11][l])
 plt.show()
 
 # latexify()
