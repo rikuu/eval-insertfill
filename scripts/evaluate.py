@@ -30,7 +30,7 @@ for predictor in sys.argv[3:]:
     tp = float(len(predicted_ids.intersection(known_ids)))
 
     if tp == 0.:
-        scores += '0. 0. 0. '
+        scores += '0 0 0 '
         continue
 
     # false positives, reads incorrectly filtered in
@@ -43,7 +43,7 @@ for predictor in sys.argv[3:]:
     fn = float(len(predicted_false - known_false))
 
     # Recall, Precision, F-score
-    scores += '%d %d %d ' % \
+    scores += '%.18f %.18f %.18f ' % \
         (recall(tp, fn), precision(tp, fp), fscore(tp, fn, fp))
 
 print(scores)

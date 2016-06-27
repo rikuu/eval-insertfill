@@ -5,9 +5,12 @@ source $DIR/configuration.sh
 
 cd $DATA
 
-if [ ! -f gaps.fa ]; then
+if [ ! -f reference.fa ]; then
+  # Make sure no indexes are left from previous runs
+  rm -f assembly.fa* gaps.fa* inserts.fa* reference.fa*
+
   # Create a fake assembly (masked donor genome in SV context)
-  python $SCRIPTS/gap_bed.py inserts.bed gaps.bed reference.bed
+  python $SCRIPTS/gap_bed.py inserts.bed gaps.bed breakpoints.bed
   $BEDTOOLS maskfasta -fi $GENOME -bed inserts.bed -fo assembly.fa
 
   # Cut the inserts and gaps from the assembly
@@ -17,9 +20,11 @@ if [ ! -f gaps.fa ]; then
   # Remove all inserts from the masked donor to create a reference genome
   python $SCRIPTS/reference.py assembly.fa reference.fa
   $BWA index reference.fa
+fi
 
-  rm -f pindel.txt libraries.txt aln.*.bam
-  for ((i=0;i<${#MEANS[@]};++i)); do
+rm -f pindel.txt libraries.txt
+for ((i=0;i<${#MEANS[@]};++i)); do
+  if [ ! -f aln."${MEANS[i]}".bam ]; then
     # Map-sort-index reads to the reference genome
     echo -e "Aligning reads (${MEANS[i]})"
     $BWA mem -t $THREADS -I ${MEANS[i]},${STDDEVS[i]} reference.fa \
@@ -28,8 +33,8 @@ if [ ! -f gaps.fa ]; then
       $SAMTOOLS sort - | \
       $SAMTOOLS rmdup -s - - > aln."${MEANS[i]}".bam
     $SAMTOOLS index aln."${MEANS[i]}".bam
+  fi
 
-    echo -e "$DATA/aln.${MEANS[i]}.bam\t${MEANS[i]}\tALN${MEANS[i]}" >> pindel.txt
-    echo -e "$DATA/aln.${MEANS[i]}.bam\t$READLENGTH\t${MEANS[i]}\t${STDDEVS[i]}" >> libraries.txt
-  done
-fi
+  echo -e "$DATA/aln.${MEANS[i]}.bam\t${MEANS[i]}\tALN${MEANS[i]}" >> pindel.txt
+  echo -e "$DATA/aln.${MEANS[i]}.bam\t$READLENGTH\t${MEANS[i]}\t${STDDEVS[i]}" >> libraries.txt
+done

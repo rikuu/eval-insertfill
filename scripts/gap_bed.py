@@ -2,7 +2,7 @@ import sys
 import numpy as np
 from math import log
 
-if len(sys.argv) != 3:
+if len(sys.argv) != 4:
     print('Usage:', sys.argv[0], '<inserts.bed> <gaps.bed> <breakpoints.bed>')
     sys.exit(1)
 
