@@ -24,7 +24,7 @@ for ((i=0;i<${#MEANS[@]};++i)); do
     echo -e "Running Gap2Seq (filter-${MEANS[i]})"
     python $SCRIPTS/filler.py -l $DATA/libraries.txt -g $DATA/gaps.fa \
       -b $DATA/breakpoints.bed -i "$i" -o tmp.filled."${MEANS[i]}".filter \
-      -t $THREADS -G $DATA/inserts.bed -u $THRESHOLD
+      -t $THREADS -u $THRESHOLD
   fi
 done
 
@@ -43,7 +43,7 @@ if [ ! -f tmp.filled.all.filter ]; then
   echo -e "Running Gap2Seq (filter-all)"
   python $SCRIPTS/filler.py -l $DATA/libraries.txt -g $DATA/gaps.fa \
     -b $DATA/breakpoints.bed -o tmp.filled.all.filter -t $THREADS \
-    -G $DATA/inserts.bed -u $THRESHOLD
+    -u $THRESHOLD
 fi
 
 FILLED=""
