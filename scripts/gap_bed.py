@@ -10,7 +10,7 @@ if len(sys.argv) != 4:
 genome_length = 83257441
 contig = 'chr17'
 
-# k+fuz
+# Default k+fuz
 flank_length = 41
 
 num_gaps = 20
@@ -61,4 +61,4 @@ with open(sys.argv[3], 'w') as f:
     for start, end in gaps:
         f.write('%s\t%i\t%i\n' % (contig, start-accum,
             start-accum+(2*flank_length)))
-        accum += (end - start)
+        accum += (end - start) - 2*flank_length

@@ -17,8 +17,7 @@ class Library:
         self.sd = std_dev
 
     def data(self):
-        return ' ' + self.bam + ' ' + str(self.len) + ' ' + \
-            str(self.mu) + ' ' + str(self.sd) + ' '
+        return '%s %i %i %i' % (self.bam, self.len, self.mu, self.sd)
 
 # Callback function to gather statistics on gaps
 filled_gaps = []
@@ -30,7 +29,7 @@ def count_filled(result):
 # Runs all the read filtering and gap filling for a single gap
 def fill_gap(libraries, id,
         scaffold, start, end, length,
-        solid, k, threshold):
+        solid, k, threshold, max_mem):
     # Cleanup, just to be sure
     subprocess.check_call(['rm', '-f', 'tmp.reads.' + id + '.fasta'])
 
@@ -39,7 +38,7 @@ def fill_gap(libraries, id,
         unmapped = (threshold != -1)
         exact = 1 # Exact is currently faster and more accurate
 
-        gap_data = '%s %i %i %i' % (scaffold, start, end, length)
+        gap_data = ' %s %i %i %i ' % (scaffold, start, end, length)
         extract_params = '%i %i %i' % (exact, unmapped, threshold)
         for lib in libraries:
             subprocess.check_call(extract + lib.data() + gap_data + \
@@ -52,6 +51,7 @@ def fill_gap(libraries, id,
             '-solid', str(solid),
             '-k', str(k),
             '-nb-cores', '1',
+            '-max-mem', str(max_mem),
             '-filled', 'tmp.fill.' + id + '.fasta',
             '-scaffolds', 'tmp.gap.' + id + '.fasta',
             '-reads', 'tmp.reads.' + id + '.fasta'],
@@ -92,7 +92,7 @@ def parse_gap(bed, gap, id, gap_lengths=None):
 
 # Starts multiple gapfilling processes in parallel
 def start_fillers(bed, gaps, libraries, pool=None, async=False,
-        k=31, solid=2, threshold=25):
+        k=31, solid=2, threshold=25, max_mem=20):
     if async: assert(pool != None)
 
     gap_id = 0
@@ -109,11 +109,11 @@ def start_fillers(bed, gaps, libraries, pool=None, async=False,
 
             if async:
                 pool.apply_async(fill_gap, args=([libraries, str(gap_id),
-                    scaffold, start, end, length, solid, k, threshold]),
+                    scaffold, start, end, length, solid, k, threshold, max_mem]),
                     callback=count_filled)
             else:
                 count_filled(fill_gap(libraries, str(gap_id), scaffold,
-                    start, end, length, solid, k, threshold))
+                    start, end, length, solid, k, threshold, max_mem))
 
             gap_id += 1
             seq = ''
@@ -124,11 +124,11 @@ def start_fillers(bed, gaps, libraries, pool=None, async=False,
 
     if async:
         pool.apply_async(fill_gap, args=([libraries, str(gap_id),
-            scaffold, start, end, length, solid, k, threshold]),
+            scaffold, start, end, length, solid, k, threshold, max_mem]),
             callback=count_filled)
     else:
         count_filled(fill_gap(libraries, str(gap_id), scaffold,
-            start, end, length, solid, k, threshold))
+            start, end, length, solid, k, threshold, max_mem))
 
     return gap_id+1
 
@@ -168,6 +168,7 @@ if __name__ == '__main__':
 
     parser.add_argument('-k', type=int, default=31)
     parser.add_argument('--solid', type=int, default=2)
+    parser.add_argument('--max-mem', type=int, default=20)
 
     parser.add_argument('-s', '--scaffolds', type=argparse.FileType('r'))
 
@@ -183,6 +184,7 @@ if __name__ == '__main__':
             arg = lib.split('\t')
             libraries += [Library(arg[0], int(arg[1]), int(arg[2]), int(arg[3]))]
 
+    # Use only 1 library
     if args['index'] != -1:
         libraries = [libraries[args['index']]]
 
@@ -197,11 +199,16 @@ if __name__ == '__main__':
 
     pool = multiprocessing.Pool(args['threads'])
 
+    # Gap2Seq divides the max mem evenly between threads, but as we run multiple
+    # parallel instances with 1 thread, we need to pre-divide
+    max_mem = args['max_mem'] / args['threads']
+
     print('Starting gapfillers')
     gaps = start_fillers(args['bed'], args['gaps'], libraries,
         pool=pool, async=(args['threads'] > 1),
         k=args['k'], solid=args['solid'],
-        threshold=args['unmapped_threshold'])
+        threshold=args['unmapped_threshold'],
+        max_mem=max_mem)
 
     args['bed'].close()
     args['gaps'].close()
