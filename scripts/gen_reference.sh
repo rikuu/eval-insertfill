@@ -1,16 +1,20 @@
 #!/bin/bash
 set -e
 
+DIR=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)/..
 source $DIR/configuration.sh
 
 cd $DATA
+
+if [ ! -f inserts.bed ]; then
+  python $SCRIPTS/gap_bed.py inserts.bed gaps.bed breakpoints.bed
+fi
 
 if [ ! -f reference.fa ]; then
   # Make sure no indexes are left from previous runs
   rm -f assembly.fa* gaps.fa* inserts.fa* reference.fa*
 
   # Create a fake assembly (masked donor genome in SV context)
-  python $SCRIPTS/gap_bed.py inserts.bed gaps.bed breakpoints.bed
   $BEDTOOLS maskfasta -fi $GENOME -bed inserts.bed -fo assembly.fa
 
   # Cut the inserts and gaps from the assembly
@@ -20,6 +24,7 @@ if [ ! -f reference.fa ]; then
   # Remove all inserts from the masked donor to create a reference genome
   python $SCRIPTS/reference.py assembly.fa reference.fa
   $BWA index reference.fa
+  $SAMTOOLS faidx reference.fa
 fi
 
 rm -f pindel.txt libraries.txt
