@@ -1,6 +1,8 @@
 import sys
 import numpy as np
 
+DEBUG = False
+
 # Defaults from Gap2Seq
 k = 31
 fuz = 10
@@ -28,8 +30,7 @@ def edit_distance(a, b):
 # Parses a fasta file of gaps into a dictionary
 def parse(file):
     lines = {}
-    identifier = ''
-    buf = ''
+    identifier, buf = '', ''
 
     with open(file, 'r') as f:
         for line in f:
@@ -41,9 +42,12 @@ def parse(file):
                     buf = ''
                 identifier = line.rstrip()[1:]
 
-                # Parse masking format - Might not work at some point
+                # Identify insertion sites by breakpoint positions
+                # NOTE: This actually uses start position of left flank
+                # TODO: Fix that.
                 s = identifier[6:].split('-')
-                identifier = int(s[1]) - int(s[0]) - 82
+                identifier = int(s[0])
+
     lines[identifier] = buf
 
     return lines
@@ -56,12 +60,13 @@ for i in known.keys(): results[i] = []
 for f in sys.argv[2:]:
     filled = parse(f)
 
-    if sorted(known.keys()) != sorted(filled.keys()):
+    if DEBUG and sorted(known.keys()) != sorted(filled.keys()):
         print(f, '\n', sorted(known.keys()), '\n', sorted(filled.keys()))
         sys.exit(1)
 
     for i in known.keys():
+        if not i in filled: filled[i] = ''
         results[i] += [str(edit_distance(known[i], filled[i]))]
 
 for i in sorted(known.keys()):
-    print(i, ' '.join(results[i]))
+    print(len(known[i]) - 82, ' '.join(results[i]))

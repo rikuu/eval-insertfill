@@ -25,6 +25,9 @@ if [ ! -f reference.fa ]; then
   python $SCRIPTS/reference.py assembly.fa reference.fa
   $BWA index reference.fa
   $SAMTOOLS faidx reference.fa
+
+  # Extract the k-mers from each gap into format readable by MindTheGap
+  python $SCRIPTS/gaps2mtg.py gaps.fa > mtg.gaps.fa
 fi
 
 rm -f pindel.txt libraries.txt

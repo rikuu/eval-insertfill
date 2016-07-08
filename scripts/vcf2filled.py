@@ -13,6 +13,7 @@ def approx_search(query, inserts):
     min_start, max_start = start - fuz, start + fuz
     min_end, max_end = end - d_err, end + d_err
 
+    # insert = (sequence, start, end)
     for i in inserts:
         if (i[0] == seq) and \
                 (i[1] >= min_start and i[1] <= max_start) and \
@@ -20,15 +21,14 @@ def approx_search(query, inserts):
             return '>%s:%i-%i' % (i[0], i[1], i[2])
     return ''
 
+# Parse the BED file
 inserts = []
 with open(sys.argv[1], 'r') as f:
     for line in f:
         fields = line.rstrip().split('\t')
         inserts += [(fields[0], int(fields[1]), int(fields[2]))]
 
-# Sort for binary searching
-# inserts = sorted(inserts, key=lambda f: f[1])
-
+# Find inserts in the VCF approximately matching the BED file
 with open(sys.argv[2], 'r') as f:
     for line in f:
         if line[0] == '#': continue

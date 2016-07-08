@@ -17,6 +17,20 @@ class Library:
     def data(self):
         return '%s %i %i %i' % (self.bam, self.len, self.mu, self.sd)
 
+class Gap:
+    def __init__(self, bed, gap, comment, id):
+        (self.scaffold, self.start, self.end), \
+            (self.left, self.right, self.length), \
+            self.comment, self.id = bed, gap, comment, id
+
+    def data(self):
+        return '%s %i %i %i' % (self.scaffold, self.start, self.end, self.length)
+
+    def filler_data(self):
+        return ['-left', self.left,
+            '-right', self.right,
+            '-length', str(self.length)]
+
 # Callback function to gather statistics on gaps
 filled_gaps = []
 def count_filled(result):
@@ -24,37 +38,31 @@ def count_filled(result):
     filled_gaps.append(result)
 
 # Runs all the read filtering and gap filling for a single gap
-def fill_gap(libraries, comment, id,
-        scaffold, start, end, left, right, length,
-        k, fuz, solid, threshold, max_mem):
+def fill_gap(libraries, gap, k, fuz, solid, threshold, max_mem):
     # Cleanup, just to be sure
-    subprocess.check_call(['rm', '-f', 'tmp.reads.' + id + '.fasta'])
+    subprocess.check_call(['rm', '-f', 'tmp.reads.' + gap.id + '.fasta'])
 
     # Extract reads
-    with open('tmp.extract.' + id + '.log', 'w') as f:
+    with open('tmp.extract.' + gap.id + '.log', 'w') as f:
         unmapped = (threshold != -1)
         exact = 1 # Exact is currently faster and more accurate
 
-        gap_data = '%s %i %i %i' % (scaffold, start, end, length)
         extract_params = '%i %i %i' % (exact, unmapped, threshold)
         for lib in libraries:
             subprocess.check_call('%s %s %s %s >> tmp.reads.%s.fasta' %
-                (extract, lib.data(), gap_data, extract_params, id),
+                (extract, lib.data(), gap.data(), extract_params, gap.id),
                 shell=True, stderr=f)
 
     # Run Gap2Seq on the gap with the filtered reads
     fill = ''
-    with open('tmp.gap2seq.' + id + '.log', 'w') as f:
+    with open('tmp.gap2seq.' + gap.id + '.log', 'w') as f:
         fill = subprocess.check_output([gap2seq,
             '-k', str(k),
             '-fuz', str(fuz),
             '-solid', str(solid),
             '-nb-cores', '1',
             '-max-mem', str(max_mem),
-            '-reads', 'tmp.reads.' + id + '.fasta',
-            '-left', left,
-            '-right', right,
-            '-length', str(length)],
+            '-reads', 'tmp.reads.' + gap.id + '.fasta'] + gap.filler_data(),
             stderr=f)
 
     # Gap2Seq outputs 'Gap2Seq\n' to stdout when exiting
@@ -64,14 +72,14 @@ def fill_gap(libraries, comment, id,
         filled = True
         fill = ''.join(fill[:-2])
     else:
-        fill = left + ('N'*length) + right
+        fill = gap.left + ('N' * gap.length) + gap.right
 
     # Cleanup reads and graph
     subprocess.check_call(['rm', '-f',
-        'tmp.reads.' + id + '.fasta',
-        'tmp.reads.' + id + '.h5'])
+        'tmp.reads.' + gap.id + '.fasta',
+        'tmp.reads.' + gap.id + '.h5'])
 
-    return (filled, comment, fill)
+    return (filled, gap.comment, fill)
 
 # NOTE: Assumes gaps and the bed file are both sorted by position
 def parse_gap(bed, gap, id, flank_length):
@@ -91,7 +99,7 @@ def parse_gap(bed, gap, id, flank_length):
     start = int(gap_data[1])
     end = int(gap_data[2])
 
-    return (scaffold, start, end), (left, right, length), comment
+    return Gap((scaffold, start, end), (left, right, length), comment, id)
 
 # Starts multiple gapfilling processes in parallel
 def start_fillers(bed, gaps, libraries, pool=None, async=False,
@@ -105,35 +113,28 @@ def start_fillers(bed, gaps, libraries, pool=None, async=False,
     seq = ''
     for gap in gaps:
         if gap[0] == '>' and seq != '':
-            (scaffold, start, end), (left, right, length), comment = \
-                parse_gap(bed, seq, str(gap_id), flank_length)
+            gap_object = parse_gap(bed, seq, str(gap_id), flank_length)
 
             if async:
-                pool.apply_async(fill_gap, args=([
-                    libraries, comment, str(gap_id),
-                    scaffold, start, end, left, right, length,
+                pool.apply_async(fill_gap, args=([libraries, gap_object,
                     k, fuz, solid, threshold, max_mem]),
                     callback=count_filled)
             else:
-                count_filled(fill_gap(libraries, comment, str(gap_id),
-                    scaffold, start, end, left, right, length,
+                count_filled(fill_gap(libraries, gap_object,
                     k, fuz, solid, threshold, max_mem))
 
             gap_id += 1
             seq = ''
         seq += gap
 
-    (scaffold, start, end), (left, right, length), comment = \
-        parse_gap(bed, seq, str(gap_id), flank_length)
+    gap_object = parse_gap(bed, seq, str(gap_id), flank_length)
 
     if async:
-        pool.apply_async(fill_gap, args=([libraries, comment, str(gap_id),
-            scaffold, start, end, left, right, length,
+        pool.apply_async(fill_gap, args=([libraries, gap_object,
             k, fuz, solid, threshold, max_mem]),
             callback=count_filled)
     else:
-        count_filled(fill_gap(libraries, comment, str(gap_id),
-            scaffold, start, end, left, right, length,
+        count_filled(fill_gap(libraries, gap_object,
             k, fuz, solid, threshold, max_mem))
 
     return gap_id+1
