@@ -2,6 +2,7 @@
 import subprocess, multiprocessing
 
 # Required tools
+gapmerger = '/cs/work/scratch/riqwalve/Gap2Seq/build/GapMerger'
 gapcutter = '/cs/work/scratch/riqwalve/Gap2Seq/build/GapCutter'
 gap2seq = '/cs/work/scratch/riqwalve/Gap2Seq/build/Gap2Seq'
 extract = '/cs/work/scratch/riqwalve/extract/extract'
@@ -13,6 +14,8 @@ class Library:
         self.len = read_length
         self.mu = mean_insert_size
         self.sd = std_dev
+
+        # TODO: Assert bam.bai exists
 
     def data(self):
         return '%s %i %i %i' % (self.bam, self.len, self.mu, self.sd)
@@ -68,9 +71,9 @@ def fill_gap(libraries, gap, k, fuz, solid, threshold, max_mem):
     # Gap2Seq outputs 'Gap2Seq\n' to stdout when exiting
     filled = False
     fill = fill.split(b'\n')
-    if len(fill) == 2:
+    if len(fill) > 1:
         filled = True
-        fill = ''.join(fill[:-2])
+        fill = ''.join([seq.decode() for seq in fill[:-2]])
     else:
         fill = gap.left + ('N' * gap.length) + gap.right
 
@@ -139,7 +142,7 @@ def start_fillers(bed, gaps, libraries, pool=None, async=False,
 
     return gap_id+1
 
-def join_filled(gaps, out='filled.fasta'):
+def join_filled(out='filled.fasta'):
     num_success = 0
     with open(out, 'w') as f:
         for (filled, comment, fill) in filled_gaps:
@@ -163,6 +166,17 @@ def cut_gaps(scaffolds):
 
     return open(bed_file, 'r'), open(gap_file, 'r')
 
+def merge_gaps(filled, merged):
+    contigs_file = 'tmp.contigs'
+
+    subprocess.check_call([gapmerger,
+            '-scaffolds', merged,
+            '-gaps', filled,
+            '-contigs', contigs_file],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    # subprocess.check_call(['rm', '-f', contigs_file, filled])
+
 if __name__ == '__main__':
     import argparse
 
@@ -178,7 +192,7 @@ if __name__ == '__main__':
     parser.add_argument('--solid', type=int, default=2)
     parser.add_argument('--max-mem', type=int, default=20)
 
-    parser.add_argument('-s', '--scaffolds', type=argparse.FileType('r'))
+    parser.add_argument('-s', '--scaffolds', type=str)
 
     parser.add_argument('-b', '--bed', type=argparse.FileType('r'))
     parser.add_argument('-g', '--gaps', type=argparse.FileType('r'))
@@ -196,10 +210,12 @@ if __name__ == '__main__':
     if args['index'] != -1:
         libraries = [libraries[args['index']]]
 
+    scaffolds_cut = False
     if args['bed'] == None or args['gaps'] == None:
         if args['scaffolds'] != None:
             print('Cutting gaps')
             args['bed'], args['gaps'] = cut_gaps(args['scaffolds'])
+            scaffolds_cut = True
         else:
             parser.print_help()
             print('Either [-b/--bed and -g/--gaps] or [-s/--scaffolds] are required.')
@@ -224,9 +240,13 @@ if __name__ == '__main__':
     pool.close()
     pool.join()
 
-    print('Joining filled sequences')
-    num_success = join_filled(args['out'])
-
-    # TODO: Merge gaps and contigs back to scaffolds here if cut
+    num_success = 0
+    if scaffolds_cut:
+        print('Merging filled gaps and contigs')
+        num_success = join_filled('tmp.filled')
+        merge_gaps('tmp.filled', args['out'])
+    else:
+        print('Joining filled sequences')
+        num_success = join_filled(args['out'])
 
     print('Filled %i out of %i gaps' % (num_success, gaps))
