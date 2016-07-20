@@ -7,7 +7,9 @@ source $DIR/configuration.sh
 cd $DATA
 
 if [ ! -f inserts.bed ]; then
-  python $SCRIPTS/gap_bed.py inserts.bed gaps.bed breakpoints.bed
+  python $SCRIPTS/gap_bed.py $GENOME \
+    $GAPNUM $MINGAPLEN $MAXGAPLEN \
+    inserts.bed gaps.bed breakpoints.bed
 fi
 
 if [ ! -f reference.fa ]; then

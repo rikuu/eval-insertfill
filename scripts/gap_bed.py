@@ -2,20 +2,34 @@ import sys
 import numpy as np
 from math import log
 
-if len(sys.argv) != 4:
-    print('Usage:', sys.argv[0], '<inserts.bed> <gaps.bed> <breakpoints.bed>')
+if len(sys.argv) != 7:
+    print('Usage:', sys.argv[0], '<genome.fa>',
+        '<num_gaps> <min_length> <max_length>',
+        '<inserts.bed> <gaps.bed> <breakpoints.bed>')
     sys.exit(1)
 
-# TODO: get these from input
-genome_length = 83257441
-contig = 'chr17'
+genome_file = sys.argv[1]
+num_gaps = sys.argv[2]
+length_start = sys.argv[3]
+length_end = sys.argv[4]
+inserts_file = sys.argv[5]
+gaps_file = sys.argv[6]
+breakpoints_file = sys.argv[7]
 
-# Default k+fuz
+# Default k+fuz from Gap2Seq
 flank_length = 41
 
-num_gaps = 20
-length_start = 11
-length_end = 5000
+genome_length = 0
+contig = ''
+
+# Parse genome length and contig identifier
+# NOTE: Assumes genome consists of a single contig
+with open(genome_file, 'r') as f:
+    for line in f:
+        if line[0] == '>':
+            contig = line[1:-1]
+        else:
+            genome_length += len(line) - 1
 
 # Generate gap lengths in logarithmic space
 lengths = np.logspace(log(length_start, 10), log(length_end, 10), num_gaps)
@@ -46,17 +60,17 @@ for length in reversed(lengths):
 gaps = sorted(gaps, key = lambda g: g[0])
 
 # Write BED file
-with open(sys.argv[1], 'w') as f:
+with open(inserts_file, 'w') as f:
     for start, end in gaps:
         f.write('%s\t%i\t%i\n' % (contig, start+flank_length, end-flank_length))
 
 # Write BED file with flanks
-with open(sys.argv[2], 'w') as f:
+with open(gaps_file, 'w') as f:
     for start, end in gaps:
         f.write('%s\t%i\t%i\n' % (contig, start, end))
 
 # Write insertion breakpoints in BED format
-with open(sys.argv[3], 'w') as f:
+with open(breakpoints_file, 'w') as f:
     accum = 0
     for start, end in gaps:
         f.write('%s\t%i\t%i\n' % (contig, start-accum,

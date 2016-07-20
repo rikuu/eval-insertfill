@@ -17,13 +17,19 @@ PINDEL=/cs/work/scratch/riqwalve/pindel/pindel
 PINDEL2VCF=/cs/work/scratch/riqwalve/pindel/pindel2vcf
 MINDTHEGAP=cs/work/scratch/riqwalve/MindTheGap/build/bin/MindTheGap
 
+# Number of threads used in all tools
 THREADS=16
 
-# Parameters for reads
+# Read simulation parameters
 READLENGTH=100
 COVERAGE=30
 MEANS=(150 1500 3000)
 STDDEVS=(15 150 300)
+
+# Gap simulation parameters
+GAPNUM=100
+MINGAPLEN=11
+MAXGAPLEN=10000
 
 # Threshold for using unmapped reads in filtering
 # Should probably be close but less than $COVERAGE
