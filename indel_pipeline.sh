@@ -22,7 +22,7 @@ for ((i=0;i<${#MEANS[@]};++i)); do
 
   if [ ! -f tmp.filled."${MEANS[i]}".filter ]; then
     echo -e "Running Gap2Seq (filter-${MEANS[i]})"
-    python $SCRIPTS/filler.py -l $DATA/libraries.txt -g $DATA/gaps.fa \
+    python3 $SCRIPTS/filler.py -l $DATA/libraries.txt -g $DATA/gaps.fa \
       -b $DATA/breakpoints.bed -i "$i" -o tmp.filled."${MEANS[i]}".filter \
       -t $THREADS -u $THRESHOLD
   fi
@@ -41,7 +41,7 @@ fi
 
 if [ ! -f tmp.filled.all.filter ]; then
   echo -e "Running Gap2Seq (filter-all)"
-  python $SCRIPTS/filler.py -l $DATA/libraries.txt -g $DATA/gaps.fa \
+  python3 $SCRIPTS/filler.py -l $DATA/libraries.txt -g $DATA/gaps.fa \
     -b $DATA/breakpoints.bed -o tmp.filled.all.filter -t $THREADS \
     -u $THRESHOLD
 fi
@@ -51,5 +51,5 @@ for ((i=0;i<${#MEANS[@]};++i)); do
   FILLED="$FILLED tmp.filled.${MEANS[i]}.normal tmp.filled.${MEANS[i]}.filter"
 done
 
-python $SCRIPTS/evaluate_fill.py $DATA/inserts.fa $FILLED \
+python3 $SCRIPTS/evaluate_fill.py $DATA/inserts.fa $FILLED \
   tmp.filled.all.normal tmp.filled.all.filter > results_fills

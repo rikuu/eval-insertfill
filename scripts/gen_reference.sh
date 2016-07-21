@@ -7,7 +7,7 @@ source $DIR/configuration.sh
 cd $DATA
 
 if [ ! -f inserts.bed ]; then
-  python $SCRIPTS/gap_bed.py $GENOME \
+  python3 $SCRIPTS/gap_bed.py $GENOME \
     $GAPNUM $MINGAPLEN $MAXGAPLEN \
     inserts.bed gaps.bed breakpoints.bed
 fi
@@ -24,12 +24,12 @@ if [ ! -f reference.fa ]; then
   $BEDTOOLS getfasta -fi $GENOME -bed gaps.bed -fo inserts.fa
 
   # Remove all inserts from the masked donor to create a reference genome
-  python $SCRIPTS/reference.py assembly.fa reference.fa
+  python3 $SCRIPTS/reference.py assembly.fa reference.fa
   $BWA index reference.fa
   $SAMTOOLS faidx reference.fa
 
   # Extract the k-mers from each gap into format readable by MindTheGap
-  python $SCRIPTS/gaps2mtg.py gaps.fa > mtg.gaps.fa
+  python3 $SCRIPTS/gaps2mtg.py gaps.fa > mtg.gaps.fa
 fi
 
 rm -f pindel.txt libraries.txt
