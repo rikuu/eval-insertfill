@@ -87,50 +87,66 @@ with open(sys.argv[1], 'r') as f:
     # LENGTH MEAN STDDEV FILTER NORMAL
     d = l.rstrip().split()
 
-    length = int(d[0]) - 82
+    length = int(d[0])
 
     #mean = int(d[1])
     #stddev = int(d[2])
 
     norm = lambda i: 1. - (float(d[i]) / length)
 
-    dds[0][9000][length].append(norm(1))
-    dds[1][9000][length].append(norm(2))
-    dds[2][9000][length].append(norm(3))
+    # dds[0][9000][length].append(norm(1))
+    # dds[1][9000][length].append(norm(2))
+    # dds[2][9000][length].append(norm(3))
 
-    # dds[0][150][length].append(norm(1))
-    # dds[1][150][length].append(norm(2))
-    # dds[0][1500][length].append(norm(3))
-    # dds[1][1500][length].append(norm(4))
-    # dds[0][3000][length].append(norm(5))
-    # dds[1][3000][length].append(norm(6))
-    #
-    # # NOTE: 9000 = all reads
-    # dds[0][9000][length].append(norm(7))
-    # dds[1][9000][length].append(norm(8))
+    dds[0][150][length].append(norm(1))
+    dds[1][150][length].append(norm(2))
+    dds[0][1500][length].append(norm(3))
+    dds[1][1500][length].append(norm(4))
+    dds[0][3000][length].append(norm(5))
+    dds[1][3000][length].append(norm(6))
 
-def plot_fills(ax, plots, legend=True):
+    # NOTE: 9000 = all reads
+    dds[0][9000][length].append(norm(7))
+    dds[1][9000][length].append(norm(8))
+
+def plot_fills(ax, plots, legend=True, steps=50):
     lengths = sorted(plots[0][0].keys())
+    print(min(lengths), max(lengths))
+    smooth_lengths = np.logspace(log(min(lengths), 10), log(max(lengths), 10), steps)
 
     average = lambda l: sum(l) / float(len(l))
     stripe = lambda d, f: [f(d[i]) for i in lengths]
+    smooth = lambda d, f: spline(lengths, stripe(d, f), smooth_lengths)
 
-    ax.plot(lengths, stripe(plots[0][0], average), '--',
-            lengths, stripe(plots[1][0], average), '-',
-            lengths, stripe(plots[2][0], average), '-')
+    ax.plot(smooth_lengths, smooth(plots[0][0], average), '--',
+            smooth_lengths, smooth(plots[1][0], average), '-')#,
+            #smooth_lengths, smooth(plots[2][0], average), '-')
 
     if legend:
         ax.legend([plot[1] for plot in plots])
 
-latexify(fig_width=6.9*1.5, columns=1, rows=1)
-fig, (ax) = plt.subplots(1, 1)
-plots = [(dds[0][9000], 'All reads'),
-    (dds[1][9000], 'Filter'),
-    (dds[2][9000], 'MindTheGap')]
-plot_fills(format_axes(ax), plots)
-plt.tight_layout()
-plt.show()
+##### Show tools
+# latexify(fig_width=6.9*1.5, columns=1, rows=1)
+# fig, (ax) = plt.subplots(1, 1)
+# plots = [(dds[0][9000], 'All reads'),
+#     (dds[1][9000], 'Filter'),
+#     (dds[2][9000], 'MindTheGap')]
+# plot_fills(format_axes(ax), plots)
+# plt.tight_layout()
+# plt.show()
 
+##### Save tools
+# latexify(rows=1.3, columns=1.5)
+# fig = plt.figure()
+# plot_fills(format_axes(fig.add_subplot(111)),
+#     [(dds[0][9000], 'All reads'),
+#      (dds[1][9000], 'Filter'),
+#      (dds[2][9000], 'MindTheGap')])
+# plt.tight_layout()
+# if len(sys.argv) >= 2:
+#     plt.savefig(sys.argv[2] + ".pgf")
+
+##### Show fills
 # latexify(fig_width=6.9*4, columns=3, rows=1)
 # fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4)
 # for ax, l in zip([ax1, ax2, ax3, ax4], [150, 1500, 3000, 9000]):
@@ -139,11 +155,13 @@ plt.show()
 # plt.tight_layout()
 # plt.show()
 
-# latexify()
-# for l in [150, 1500, 3000]:
-#     fig = plt.figure()
-#     plot_fills(format_axes(fig.add_subplot(111)), dds[0][l], dds[1][l], l == 150)
-#     plt.tight_layout()
-#     if len(sys.argv) >= 2:
-#         plt.savefig(sys.argv[2] + "." + str(l) + ".pgf")
-#     fig.clf()
+##### Save fills
+latexify(columns=1.5)
+for l in [150, 1500, 3000, 9000]:
+    fig = plt.figure()
+    plots = [(dds[0][l], 'All reads'), (dds[1][l], 'Filter')]
+    plot_fills(format_axes(fig.add_subplot(111)), plots, l == 150)
+    plt.tight_layout()
+    if len(sys.argv) >= 2:
+        plt.savefig(sys.argv[2] + "." + str(l) + ".pgf")
+    fig.clf()

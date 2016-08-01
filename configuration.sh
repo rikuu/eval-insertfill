@@ -15,7 +15,7 @@ EXTRACT=/cs/work/scratch/riqwalve/extract/extract
 
 PINDEL=/cs/work/scratch/riqwalve/pindel/pindel
 PINDEL2VCF=/cs/work/scratch/riqwalve/pindel/pindel2vcf
-MINDTHEGAP=cs/work/scratch/riqwalve/MindTheGap/build/bin/MindTheGap
+MINDTHEGAP=/cs/work/scratch/riqwalve/MindTheGap/build/bin/MindTheGap
 
 # Number of threads used in all tools
 THREADS=16

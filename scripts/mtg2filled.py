@@ -40,5 +40,5 @@ def parse_fills(seq):
     end = start + len(fill)
     print('>%s:%i-%i\n%s' % (contig, start, end, fill))
 
-meta_parse(sys.argv[1], parse_kmers)
+meta_parse(sys.argv[1], parse_flanks)
 meta_parse(sys.argv[2], parse_fills)

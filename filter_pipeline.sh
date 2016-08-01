@@ -69,7 +69,7 @@ while read BED; do
     fi
 
     # Evaluate the schemes
-    RESULTS=$(python $SCRIPTS/evaluate.py \
+    RESULTS=$(python3 $SCRIPTS/evaluate.py \
       aln."${MEANS[i]}".fa \
       known."$GAPLENGTH"."${MEANS[i]}".fa \
       overlap."$GAPLENGTH"."${MEANS[i]}".fa \
