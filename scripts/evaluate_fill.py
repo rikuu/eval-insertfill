@@ -1,4 +1,4 @@
-import sys
+import sys, re
 import numpy as np
 
 DEBUG = False
@@ -40,13 +40,11 @@ def parse(file):
                 if len(buf) != 0:
                     lines[identifier] = buf
                     buf = ''
-                identifier = line.rstrip()[1:]
 
                 # Identify insertion sites by breakpoint positions
                 # NOTE: This actually uses start position of left flank
                 # TODO: Fix that.
-                s = identifier[6:].split('-')
-                identifier = int(s[0])
+                identifier = int(re.split(':|-', line.rstrip()[1:])[1])
 
     lines[identifier] = buf
 

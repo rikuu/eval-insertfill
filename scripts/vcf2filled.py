@@ -10,8 +10,8 @@ if len(sys.argv) != 3:
 
 def approx_search(query, inserts):
     seq, start, end = query
-    min_start, max_start = start - fuz, start + fuz
-    min_end, max_end = end - d_err, end + d_err
+    min_start, max_start = start - fuz, start
+    min_end, max_end = end - d_err, end + d_err + fuz
 
     # insert = (sequence, start, end)
     for i in inserts:

@@ -147,7 +147,7 @@ with open(sys.argv[1], 'r') as f:
 latexify(columns=1.5)
 for l in [150, 1500, 3000]:
     fig = plt.figure()
-    plot_between(format_axes(fig.add_subplot(111)), dds[0][l], dds[3][l], dds[6][l], legend=False)
+    plot_between(format_axes(fig.add_subplot(111)), dds[0][l], dds[3][l], dds[6][l], legend=(l == 150))
     plt.tight_layout()
     if len(sys.argv) >= 2:
         plt.savefig(sys.argv[2] + "." + str(l) + ".pgf")

@@ -110,9 +110,9 @@ def color_stripe(tools, index, direction=-1):
 def latex_print(assembly, original, tools, header=True):
     table = "\\multirow{8}{*}{\\rotatebox[origin=c]{90}{\\bf %s}} && " % (assembly)
     if header:
-        table += 'Original & ' + ' & '.join(['{\\bf %s}' % tool[0] for tool in tools]) + ' \\\\ \\bottomrule \n'
+        table += '{\\bf Original} & ' + ' & '.join(['{\\bf %s}' % tool[0] for tool in tools]) + ' \\\\ \\bottomrule \n'
     else:
-        table += '&' * len(tools) + ' \\\\ \\bottomrule \n'
+        table += '&' * len(tools) + ' \\\\ \\midrule \n'
 
     #stripe = lambda n, t: ' & '.join([str(tool[n]) for tool in t])
 
@@ -139,7 +139,9 @@ split_assemblies = [['ABySS', 'ABySS2', 'Allpaths-LG'],
     ['SGA', 'SOAPdenovo', 'Velvet']] #, 'TOTAL', 'AVERAGE']:
 
 for assemblies in split_assemblies:
-    for i, assembly in enumerate(assemblies):
+    print('\\begin{table}[h]\n\t\\centering\n\t\\begin{tabu}{clrrrrr}\n\t\t\\toprule')
+    for j, assembly in enumerate(assemblies):
         gap2seq2 = ['Gap2Seq 2.1']+[percent_of(new[assembly][i], original[assembly][i]) for i in range(len(new[assembly]))]
         tools = [[tool[0]] + tool[1][assembly] for tool in old_tools] + [gap2seq2]
-        latex_print(assembly, original[assembly], tools, (i == 0))
+        latex_print(assembly, original[assembly], tools, (j == 0))
+    print('\t\t\\bottomrule\n\t\t\\end{tabu}\n\t\\caption{Quality of filled gaps on Human14 dataset.}\n\t\\label{fig:human14}\n\\end{table}')

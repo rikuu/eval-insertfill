@@ -31,7 +31,7 @@ def parse_flanks(seq):
 def parse_fills(seq):
     split = seq[0].split('_')
     contig = split[1]
-    pos = int(split[3])
+    pos = int(split[split.index('pos')+1])
 
     fill = ''.join(seq[1:])
     fill = left_flank[pos] + fill + right_flank[pos]
