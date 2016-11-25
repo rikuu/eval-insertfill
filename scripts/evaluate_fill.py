@@ -66,5 +66,30 @@ for f in sys.argv[2:]:
         if not i in filled: filled[i] = ''
         results[i] += [str(edit_distance(known[i], filled[i]))]
 
-for i in sorted(known.keys()):
-    print(len(known[i]) - 82, ' '.join(results[i]))
+# Print plottable lengths
+for i in sorted(known.keys(), key = lambda key: len(known[key])):
+    print(len(known[i]), ' '.join(results[i]))
+
+def sumres(down=0, up=float("inf")):
+    sums = [0] * len(sys.argv[1:])
+    for i in known.keys():
+        if down > len(known[i]) or len(known[i]) > up: continue
+        sums[0] += len(known[i])
+        for j in range(len(results[i])):
+            sums[j+1] += int(results[i][j])
+    return sums
+
+def normalized(sums):
+    if sums[0] == 0: return [0] * (len(sums)-1)
+    return [round(i / sums[0], 3) for i in sums[1:]]
+
+# Print summary of gaps based on length
+print('-:\t', sumres())
+print('0-100:\t', sumres(0, 100))
+print('100-1000:\t', sumres(100,1000))
+print('1000-:\t', sumres(1000))
+
+print('-:\t', normalized(sumres()))
+print('0-100:\t', normalized(sumres(0, 100)))
+print('100-1000:\t', normalized(sumres(100, 1000)))
+print('1000-:\t', normalized(sumres(1000)))

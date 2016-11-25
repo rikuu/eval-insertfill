@@ -34,7 +34,7 @@ def latexify(fig_width=None, fig_height=None, columns=1, rows=1):
     #     fig_height = MAX_HEIGHT_INCHES
 
     params = {'backend': 'ps',
-              'text.latex.preamble': ['\usepackage{gensymb}'],
+              'text.latex.preamble': ['\\usepackage{gensymb}'],
               'axes.labelsize': 8, # fontsize for x and y labels (was 10)
               'axes.titlesize': 8,
               'text.fontsize': 8, # was 10
@@ -79,7 +79,7 @@ def median(l):
     if len(l) == 1: return l[0]
 
     s = sorted(l)
-    m = len(l) / 2
+    m = int(len(l) / 2)
     if len(l) % 2 == 1:
         return s[m]
     else:
@@ -136,10 +136,10 @@ with open(sys.argv[1], 'r') as f:
 # latexify(fig_width=6.9*3, columns=2.5, rows=1)
 # fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
 # for l, ax in zip([150, 1500, 3000], [ax1, ax2, ax3]):
-#     ax.set_ylabel("Recall")
-#     plot_between(format_axes(ax), dds[0][l], dds[3][l], dds[6][l])#, dds[9][l])
-#     # ax.set_ylabel("Precision")
-#     # plot_between(format_axes(ax), dds[1][l], dds[4][l], dds[7][l])#, dds[10][l])
+#     # ax.set_ylabel("Recall")
+#     # plot_between(format_axes(ax), dds[0][l], dds[3][l], dds[6][l])#, dds[9][l])
+#     ax.set_ylabel("Precision")
+#     plot_between(format_axes(ax), dds[1][l], dds[4][l], dds[7][l])#, dds[10][l])
 #     # ax.set_ylabel("F-score")
 #     # plot_between(format_axes(ax), dds[2][l], dds[5][l], dds[8][l])#, dds[11][l])
 # plt.show()
@@ -147,7 +147,8 @@ with open(sys.argv[1], 'r') as f:
 latexify(columns=1.5)
 for l in [150, 1500, 3000]:
     fig = plt.figure()
-    plot_between(format_axes(fig.add_subplot(111)), dds[0][l], dds[3][l], dds[6][l], legend=(l == 150))
+    plot_between(format_axes(fig.add_subplot(111)), dds[1][l], dds[4][l], dds[7][l], legend=(l == 150))
+    #plot_between(format_axes(fig.add_subplot(111)), dds[0][l], dds[3][l], dds[6][l], legend=(l == 150))
     plt.tight_layout()
     if len(sys.argv) >= 2:
         plt.savefig(sys.argv[2] + "." + str(l) + ".pgf")

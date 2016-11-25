@@ -28,7 +28,7 @@ with open(sys.argv[2], 'r') as f:
         fields = line.rstrip().split('\t')
 
         # Parse VCF fields
-        insert = fields[4]
+        insert = fields[4][1:]
         comment, start, end = fields[0], int(fields[1]) - 1, \
             int(fields[1]) + len(insert) - 1
 

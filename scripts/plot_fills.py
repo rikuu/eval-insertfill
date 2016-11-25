@@ -34,7 +34,7 @@ def latexify(fig_width=None, fig_height=None, columns=1, rows=1):
     #     fig_height = MAX_HEIGHT_INCHES
 
     params = {'backend': 'ps',
-              'text.latex.preamble': ['\usepackage{gensymb}'],
+              'text.latex.preamble': ['\\usepackage{gensymb}'],
               'axes.labelsize': 8, # fontsize for x and y labels (was 10)
               'axes.titlesize': 8,
               'text.fontsize': 8, # was 10
@@ -92,22 +92,22 @@ with open(sys.argv[1], 'r') as f:
     #mean = int(d[1])
     #stddev = int(d[2])
 
-    norm = lambda i: 1. - (float(d[i]) / length)
+    norm = lambda i, offset: 1. - (float(d[i]) / (length + offset))
 
-    # dds[0][9000][length].append(norm(1))
-    # dds[1][9000][length].append(norm(2))
-    # dds[2][9000][length].append(norm(3))
+    dds[0][9000][length].append(norm(1, 84)) # offset by flank length
+    dds[1][9000][length].append(norm(2, 84))
+    dds[2][9000][length].append(norm(3, 0))
 
-    dds[0][150][length].append(norm(1))
-    dds[1][150][length].append(norm(2))
-    dds[0][1500][length].append(norm(3))
-    dds[1][1500][length].append(norm(4))
-    dds[0][3000][length].append(norm(5))
-    dds[1][3000][length].append(norm(6))
-
-    # NOTE: 9000 = all reads
-    dds[0][9000][length].append(norm(7))
-    dds[1][9000][length].append(norm(8))
+    # dds[0][150][length].append(norm(1))
+    # dds[1][150][length].append(norm(2))
+    # dds[0][1500][length].append(norm(3))
+    # dds[1][1500][length].append(norm(4))
+    # dds[0][3000][length].append(norm(5))
+    # dds[1][3000][length].append(norm(6))
+    #
+    # # NOTE: 9000 = all reads
+    # dds[0][9000][length].append(norm(7))
+    # dds[1][9000][length].append(norm(8))
 
 def plot_fills(ax, plots, legend=True, steps=50):
     lengths = sorted(plots[0][0].keys())
@@ -119,11 +119,22 @@ def plot_fills(ax, plots, legend=True, steps=50):
     smooth = lambda d, f: spline(lengths, stripe(d, f), smooth_lengths)
 
     ax.plot(smooth_lengths, smooth(plots[0][0], average), '--',
-            smooth_lengths, smooth(plots[1][0], average), '-')#,
-            #smooth_lengths, smooth(plots[2][0], average), '-')
+            smooth_lengths, smooth(plots[1][0], average), '-',
+            smooth_lengths, smooth(plots[2][0], average), '-')
 
     if legend:
         ax.legend([plot[1] for plot in plots])
+
+##### Print table
+avg = lambda data: sum(data) / len(data)
+part = lambda data, low, high: [x for x in data if x >= low and x <= high]
+count = lambda data, indices: avg([avg(data[index]) for index in indices])
+avg_in = lambda data, low, high: count(data, part(data.keys(), low, high))
+all_tools = lambda low, high: [round(avg_in(dds[i][9000], low, high), 3) for i in [2, 0, 1]]
+splits = [0, 100, 300, 500, 1000, 10000]
+for low, high in zip(splits[:-1], splits[1:]):
+    print(low, '--', high, all_tools(low, high))
+#print([all_tools(low, high) for low, high in [(0, 100), (100, 500), (500, 1000), (1000, 5000), (5000, 10000)])
 
 ##### Show tools
 # latexify(fig_width=6.9*1.5, columns=1, rows=1)
@@ -156,12 +167,12 @@ def plot_fills(ax, plots, legend=True, steps=50):
 # plt.show()
 
 ##### Save fills
-latexify(columns=1.5)
-for l in [150, 1500, 3000, 9000]:
-    fig = plt.figure()
-    plots = [(dds[0][l], 'All reads'), (dds[1][l], 'Filter')]
-    plot_fills(format_axes(fig.add_subplot(111)), plots, l == 150)
-    plt.tight_layout()
-    if len(sys.argv) >= 2:
-        plt.savefig(sys.argv[2] + "." + str(l) + ".pgf")
-    fig.clf()
+# latexify(columns=1.5)
+# for l in [150, 1500, 3000, 9000]:
+#     fig = plt.figure()
+#     plots = [(dds[0][l], 'All reads'), (dds[1][l], 'Filter')]
+#     plot_fills(format_axes(fig.add_subplot(111)), plots, l == 150)
+#     plt.tight_layout()
+#     if len(sys.argv) >= 2:
+#         plt.savefig(sys.argv[2] + "." + str(l) + ".pgf")
+#     fig.clf()

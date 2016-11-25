@@ -2,6 +2,7 @@
 import subprocess, multiprocessing
 
 # Required tools
+# TODO: Find these semi-automatically
 gapmerger = '/cs/work/scratch/riqwalve/Gap2Seq/build/GapMerger'
 gapcutter = '/cs/work/scratch/riqwalve/Gap2Seq/build/GapCutter'
 gap2seq = '/cs/work/scratch/riqwalve/Gap2Seq/build/Gap2Seq'
@@ -35,11 +36,16 @@ class Gap:
             '-length', str(self.length)]
 
 # Callback function to gather statistics on gaps
-# TODO: Report some progress while running
-filled_gaps = []
+# TODO: Estimate time to completion
+filled_gaps, num_of_gaps = [], 1
+print_lock = multiprocessing.Lock()
 def count_filled(result):
-    global filled_gaps
+    global filled_gaps, num_of_gaps
     filled_gaps.append(result)
+    with print_lock:
+        print('Progress %.3f [%i / %i]' % \
+            (len(filled_gaps) / num_of_gaps, len(filled_gaps), num_of_gaps),
+            end='\r')
 
 # Runs all the read filtering and gap filling for a single gap
 def fill_gap(libraries, gap, k, fuz, solid, threshold, max_mem):
@@ -81,9 +87,10 @@ def fill_gap(libraries, gap, k, fuz, solid, threshold, max_mem):
     # Cleanup reads and graph
     subprocess.check_call(['rm', '-f',
         'tmp.reads.' + gap.id + '.fasta',
-        'tmp.reads.' + gap.id + '.h5'])
+        'tmp.reads.' + gap.id + '.h5',
+        'tmp.reads.' + gap.id + '.bin'])
 
-    # Remove logs
+    # Remove logs and temporary/intermediate files
     subprocess.check_call(['rm', '-f',
         'tmp.extract.' + gap.id + '.log',
         'tmp.gap2seq.' + gap.id + '.log'])
@@ -146,8 +153,6 @@ def start_fillers(bed, gaps, libraries, pool=None, async=False,
         count_filled(fill_gap(libraries, gap_object,
             k, fuz, solid, threshold, max_mem))
 
-    return gap_id+1
-
 def join_filled(out='filled.fasta'):
     num_success = 0
     with open(out, 'w') as f:
@@ -157,12 +162,8 @@ def join_filled(out='filled.fasta'):
     return num_success
 
 # Run GapCutter, i.e. cut scaffolds into contigs and gaps
-def cut_gaps(scaffolds):
-    # TODO: Take these from some input?
-    contigs_file = 'tmp.contigs'
-    gap_file = 'tmp.gaps'
-    bed_file = 'tmp.bed'
-
+def cut_gaps(scaffolds, contigs_file = 'tmp.contigs', gap_file = 'tmp.gaps',
+        bed_file = 'tmp.bed'):
     # Delete the files without warning to make sure they don't exist
     # TODO: Check if the files exist instead!
     subprocess.check_call(['rm', '-f', contigs_file, gap_file, bed_file])
@@ -190,12 +191,8 @@ def merge_gaps(filled, merged):
 
 # Parse VCF file and extract kmers from reference genome
 # TODO: Import function from a script, maybe?
-def cut_vcf(vcf, reference_file, k, fuz):
-    # TODO: Don't hardcode these
-    contigs_file = 'tmp.contigs'
-    gap_file = 'tmp.gaps'
-    bed_file = 'tmp.bed'
-
+def cut_vcf(vcf, reference_file, k, fuz, contigs_file = 'tmp.contigs',
+        gap_file = 'tmp.gaps', bed_file = 'tmp.bed'):
     # Parse chromosomes from the reference into a dictionary
     # NOTE: Since this loads the entire reference genome into RAM, we will
     # expect the genome to be short enough.
@@ -217,7 +214,8 @@ def cut_vcf(vcf, reference_file, k, fuz):
         fields = line.rstrip().split('\t')
 
         # Parse VCF fields
-        insert = fields[4]
+        # NOTE: Assumes REF is one nucleotide
+        insert = fields[4][1:]
         comment, start, end = fields[0], int(fields[1]) - 1, int(fields[1]) + len(insert) - 1
 
         # Extract kmers from reference seqeuences
@@ -234,6 +232,16 @@ def cut_vcf(vcf, reference_file, k, fuz):
 
     return gap, bed
 
+# Count the number of gaps
+def count_gaps(bed):
+    global num_of_gaps
+    num_of_gaps = 0
+
+    bed.seek(0)
+    for line in bed:
+        num_of_gaps += 1
+    bed.seek(0)
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Gap2Seq with optional read filtering.')
@@ -248,9 +256,10 @@ if __name__ == '__main__':
     parser.add_argument('--solid', type=int, default=2)
     parser.add_argument('--max-mem', type=int, default=20)
 
-    # Either a set of mapped read libraries or a set of fasta formatted reads
+    # Either a set of mapped read libraries or a set of fasta-formatted reads
     # TODO: Hide -i option, needless confusion
-    parser.add_argument('-l', '--libraries')
+    # TODO: Give help on formatting libraries.txt
+    parser.add_argument('-l', '--libraries', required=True)
     parser.add_argument('-i', '--index', type=int, default=-1)
     parser.add_argument('-u', '--unmapped-threshold', type=int, default=25)
 
@@ -293,6 +302,8 @@ if __name__ == '__main__':
             print('Either [-b/--bed and -g/--gaps], [-v/--vcf and -r/--reference], or [-s/--scaffolds] are required.')
             exit(1)
 
+    count_gaps(args['bed'])
+
     pool = multiprocessing.Pool(args['threads'])
 
     # Gap2Seq divides the max mem evenly between threads, but as we run multiple
@@ -300,7 +311,7 @@ if __name__ == '__main__':
     max_mem = int(args['max_mem'] / args['threads'])
 
     print('Starting gapfillers')
-    gaps = start_fillers(args['bed'], args['gaps'], libraries,
+    start_fillers(args['bed'], args['gaps'], libraries,
         pool=pool, async=(args['threads'] > 1),
         k=args['k'], fuz=args['fuz'], solid=args['solid'],
         threshold=args['unmapped_threshold'],
@@ -321,4 +332,4 @@ if __name__ == '__main__':
         print('Joining filled sequences')
         num_success = join_filled(args['out'])
 
-    print('Filled %i out of %i gaps' % (num_success, gaps))
+    print('Filled %i out of %i gaps' % (num_success, num_of_gaps))
