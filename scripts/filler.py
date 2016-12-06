@@ -1,12 +1,25 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+# Copyright 2016 Riku Walve
+
+import os, sys
 import subprocess, multiprocessing
 
-# Required tools
-# TODO: Find these semi-automatically
-gapmerger = '/cs/work/scratch/riqwalve/Gap2Seq/build/GapMerger'
-gapcutter = '/cs/work/scratch/riqwalve/Gap2Seq/build/GapCutter'
-gap2seq = '/cs/work/scratch/riqwalve/Gap2Seq/build/Gap2Seq'
-extract = '/cs/work/scratch/riqwalve/extract/extract'
+isexecutable = lambda f: os.path.isfile(f) and os.access(f, os.X_OK)
+def find_executable(path_hint, name):
+    path = os.path.join(path_hint, name)
+    if isexecutable(path):
+        return path
+
+    print('%s not found' % name, file=sys.stderr)
+    sys.exit(1)
+
+# Find required tools
+gapmerger = find_executable('../Gap2Seq/build', 'GapMerger')
+gapcutter = find_executable('../Gap2Seq/build', 'GapCutter')
+gap2seq = find_executable('../Gap2Seq/build', 'Gap2Seq')
+extract = find_executable('../extract', 'extract')
 
 # An object for holding all the data for a library of short reads
 class Library:
@@ -16,7 +29,10 @@ class Library:
         self.mu = mean_insert_size
         self.sd = std_dev
 
-        # TODO: Assert bam.bai exists
+        # Assert bam-file is indexed
+        if not os.path.isfile(bam + '.bai'):
+            print('%s.bai not found' % bam, file=sys.stderr)
+            sys.exit(1)
 
     def data(self):
         return '%s %i %i %i' % (self.bam, self.len, self.mu, self.sd)
@@ -190,7 +206,6 @@ def merge_gaps(filled, merged):
     # subprocess.check_call(['rm', '-f', contigs_file, filled])
 
 # Parse VCF file and extract kmers from reference genome
-# TODO: Import function from a script, maybe?
 def cut_vcf(vcf, reference_file, k, fuz, contigs_file = 'tmp.contigs',
         gap_file = 'tmp.gaps', bed_file = 'tmp.bed'):
     # Parse chromosomes from the reference into a dictionary
@@ -257,10 +272,9 @@ if __name__ == '__main__':
     parser.add_argument('--max-mem', type=int, default=20)
 
     # Either a set of mapped read libraries or a set of fasta-formatted reads
-    # TODO: Hide -i option, needless confusion
     # TODO: Give help on formatting libraries.txt
-    parser.add_argument('-l', '--libraries', required=True)
-    parser.add_argument('-i', '--index', type=int, default=-1)
+    parser.add_argument('-l', '--libraries', required=True, help="List of aligned read libraries")
+    parser.add_argument('-i', '--index', type=int, default=-1, help=argparse.SUPPRESS)
     parser.add_argument('-u', '--unmapped-threshold', type=int, default=25)
 
     # One of three options is required for gap data:
