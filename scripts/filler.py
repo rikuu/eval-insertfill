@@ -19,7 +19,7 @@ def find_executable(path_hint, name):
 gapmerger = find_executable('../Gap2Seq/build', 'GapMerger')
 gapcutter = find_executable('../Gap2Seq/build', 'GapCutter')
 gap2seq = find_executable('../Gap2Seq/build', 'Gap2Seq')
-extract = find_executable('../extract', 'extract')
+extract = find_executable('../extract/build', 'extract')
 
 # An object for holding all the data for a library of short reads
 class Library:
@@ -35,7 +35,7 @@ class Library:
             sys.exit(1)
 
     def data(self):
-        return '%s %i %i %i' % (self.bam, self.len, self.mu, self.sd)
+        return '-bam %s -read-length %i -mean %i -std-dev %i' % (self.bam, self.len, self.mu, self.sd)
 
 class Gap:
     def __init__(self, bed, gap, comment, id):
@@ -44,7 +44,7 @@ class Gap:
             self.comment, self.id = bed, gap, comment, id
 
     def data(self):
-        return '%s %i %i %i' % (self.scaffold, self.start, self.end, self.length)
+        return '-scaffold %s -start %i -end %i' % (self.scaffold, self.start, self.end)
 
     def filler_data(self):
         return ['-left', self.left,
@@ -114,16 +114,15 @@ def fill_gap(libraries, gap, k, fuz, solid, threshold, max_mem):
     return (filled, gap.comment, fill)
 
 # NOTE: Assumes gaps and the bed file are in the same order
-def parse_gap(bed, gap, id, flank_length):
+def parse_gap(bed, gap, id):
     gap = gap.split('\n')
     comment = gap[0]
 
     gap = ''.join(gap[1:])
 
-    # TODO: Not assume static flank lengths
-    left = gap[:flank_length]
-    right = gap[-flank_length:]
-    length = len(gap) - 2*flank_length
+    left = gap[:gap.upper().find('N')]
+    right = gap[gap.upper().rfind('N')+1:]
+    length = len(gap) - len(left) - len(right)
 
     # Parse gap data from bed file
     gap_data = bed.readline().rstrip().split('\t')
@@ -136,53 +135,42 @@ def parse_gap(bed, gap, id, flank_length):
 # Starts multiple gapfilling processes in parallel
 def start_fillers(bed, gaps, libraries, pool=None, async=False,
         k=31, fuz=10, solid=2, threshold=25, max_mem=20):
-    if async: assert(pool != None)
+    start_filler = lambda seq, gap_id: count_filled(fill_gap(libraries,
+        parse_gap(bed, seq, str(gap_id)), k, fuz, solid, threshold, max_mem))
 
-    flank_length = k+fuz
+    if async:
+        assert(pool != None)
+        start_filler = lambda seq, gap_id: pool.apply_async(fill_gap,
+            args=([libraries, parse_gap(bed, seq, str(gap_id)), k, fuz, solid, threshold, max_mem]),
+            callback=count_filled)
 
     gap_id = 0
 
     seq = ''
     for gap in gaps:
         if gap[0] == '>' and seq != '':
-            gap_object = parse_gap(bed, seq, str(gap_id), flank_length)
-
-            if async:
-                pool.apply_async(fill_gap, args=([libraries, gap_object,
-                    k, fuz, solid, threshold, max_mem]),
-                    callback=count_filled)
-            else:
-                count_filled(fill_gap(libraries, gap_object,
-                    k, fuz, solid, threshold, max_mem))
-
+            start_filler(seq, gap_id)
             gap_id += 1
             seq = ''
         seq += gap
 
-    gap_object = parse_gap(bed, seq, str(gap_id), flank_length)
-
-    if async:
-        pool.apply_async(fill_gap, args=([libraries, gap_object,
-            k, fuz, solid, threshold, max_mem]),
-            callback=count_filled)
-    else:
-        count_filled(fill_gap(libraries, gap_object,
-            k, fuz, solid, threshold, max_mem))
+    start_filler(seq, gap_id)
 
 def join_filled(out='filled.fasta'):
     num_success = 0
     with open(out, 'w') as f:
         for (filled, comment, fill) in filled_gaps:
-            if filled: num_success += 1
+            if filled:
+                num_success += 1
             f.write(comment + '\n' + fill + '\n')
     return num_success
 
 # Run GapCutter, i.e. cut scaffolds into contigs and gaps
 def cut_gaps(scaffolds, contigs_file = 'tmp.contigs', gap_file = 'tmp.gaps',
         bed_file = 'tmp.bed'):
-    # Delete the files without warning to make sure they don't exist
-    # TODO: Check if the files exist instead!
-    subprocess.check_call(['rm', '-f', contigs_file, gap_file, bed_file])
+    if os.path.isfile(contigs_file): print('%s exists' % contigs_file)
+    if os.path.isfile(gap_file): print('%s exists' % gap_file)
+    if os.path.isfile(bed_file): print('%s exists' % bed_file)
 
     subprocess.check_call([gapcutter,
             '-scaffolds', scaffolds,
@@ -194,9 +182,7 @@ def cut_gaps(scaffolds, contigs_file = 'tmp.contigs', gap_file = 'tmp.gaps',
     return open(bed_file, 'r'), open(gap_file, 'r')
 
 # Run GapMerger, i.e. merge contigs and filled gaps back into scaffolds
-def merge_gaps(filled, merged):
-    contigs_file = 'tmp.contigs'
-
+def merge_gaps(filled, merged, contigs_file='tmp.contigs'):
     subprocess.check_call([gapmerger,
             '-scaffolds', merged,
             '-gaps', filled,
@@ -229,8 +215,8 @@ def cut_vcf(vcf, reference_file, k, fuz, contigs_file = 'tmp.contigs',
         fields = line.rstrip().split('\t')
 
         # Parse VCF fields
-        # NOTE: Assumes REF is one nucleotide
-        insert = fields[4][1:]
+        insert_ref = fields[3]
+        insert = fields[4][len(insert_ref):]
         comment, start, end = fields[0], int(fields[1]) - 1, int(fields[1]) + len(insert) - 1
 
         # Extract kmers from reference seqeuences
@@ -275,7 +261,8 @@ if __name__ == '__main__':
     # TODO: Give help on formatting libraries.txt
     parser.add_argument('-l', '--libraries', required=True, help="List of aligned read libraries")
     parser.add_argument('-i', '--index', type=int, default=-1, help=argparse.SUPPRESS)
-    parser.add_argument('-u', '--unmapped-threshold', type=int, default=25)
+    parser.add_argument('-u', '--unmapped-threshold', type=int, default=0,
+        help="Coverage threshold for using unmapped reads (0 for inferred, -1 to disable)")
 
     # One of three options is required for gap data:
     # 1. Cut gaps and bed from some scaffolds

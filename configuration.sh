@@ -8,10 +8,10 @@ BEDTOOLS=/cs/work/scratch/riqwalve/bedtools2/bin/bedtools
 SAMTOOLS=~/samtools/samtools
 BWA=~/bwa/bwa
 
-GAP2SEQ=/cs/work/scratch/riqwalve/Gap2Seq/build/Gap2Seq
-GAPCUTTER=/cs/work/scratch/riqwalve/Gap2Seq/build/GapCutter
+GAP2SEQ=$DIR/Gap2Seq/build/Gap2Seq
+GAPCUTTER=$DIR/Gap2Seq/build/GapCutter
 
-EXTRACT=/cs/work/scratch/riqwalve/extract/extract
+EXTRACT=$DIR/extract/build/extract
 
 PINDEL=/cs/work/scratch/riqwalve/pindel/pindel
 PINDEL2VCF=/cs/work/scratch/riqwalve/pindel/pindel2vcf
@@ -33,7 +33,7 @@ MAXGAPLEN=10000
 
 # Threshold for using unmapped reads in filtering
 # Should probably be close but less than $COVERAGE
-THRESHOLD=25
+THRESHOLD=15
 
 # TODO: Run fix_chr17.py ?
 GENOME=$DIR/chr17.fa
