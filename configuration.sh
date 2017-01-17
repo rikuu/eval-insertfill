@@ -20,6 +20,9 @@ MINDTHEGAP=/cs/work/scratch/riqwalve/MindTheGap/build/bin/MindTheGap
 # Number of threads used in all tools
 THREADS=16
 
+# Maximum memory usage for Gap2Seq (in Gb)
+MAXMEM=15
+
 # Read simulation parameters
 READLENGTH=100
 COVERAGE=30

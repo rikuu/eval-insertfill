@@ -2,16 +2,16 @@ import sys
 import numpy as np
 from math import log
 
-if len(sys.argv) != 7:
+if len(sys.argv) != 8:
     print('Usage:', sys.argv[0], '<genome.fa>',
         '<num_gaps> <min_length> <max_length>',
         '<inserts.bed> <gaps.bed> <breakpoints.bed>')
     sys.exit(1)
 
 genome_file = sys.argv[1]
-num_gaps = sys.argv[2]
-length_start = sys.argv[3]
-length_end = sys.argv[4]
+num_gaps = int(sys.argv[2])
+length_start = float(sys.argv[3])
+length_end = float(sys.argv[4])
 inserts_file = sys.argv[5]
 gaps_file = sys.argv[6]
 breakpoints_file = sys.argv[7]

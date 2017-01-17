@@ -17,14 +17,15 @@ for ((i=0;i<${#MEANS[@]};++i)); do
   if [ ! -f tmp.filled."${MEANS[i]}".normal ]; then
     echo -e "Running Gap2Seq (normal-${MEANS[i]})"
     $GAP2SEQ -filled tmp.filled."${MEANS[i]}".normal -scaffolds $DATA/gaps.fa \
-      -reads $DATA/reads"$i"_pe1.fq,$DATA/reads"$i"_pe2.fq -nb-cores $THREADS
+      -reads $DATA/reads"$i"_pe1.fq,$DATA/reads"$i"_pe2.fq -nb-cores $THREADS \
+      -max-mem $MAXMEM
   fi
 
   if [ ! -f tmp.filled."${MEANS[i]}".filter ]; then
     echo -e "Running Gap2Seq (filter-${MEANS[i]})"
     python3 $SCRIPTS/filler.py -l $DATA/libraries.txt -g $DATA/gaps.fa \
       -b $DATA/breakpoints.bed -i "$i" -o tmp.filled."${MEANS[i]}".filter \
-      -t $THREADS -u $THRESHOLD
+      -t $THREADS -u $THRESHOLD --max-mem $MAXMEM
   fi
 done
 
@@ -36,14 +37,14 @@ if [ ! -f tmp.filled.all.normal ]; then
 
   echo -e "Running Gap2Seq (normal-all)"
   $GAP2SEQ -filled tmp.filled.all.normal -scaffolds $DATA/gaps.fa \
-    -reads $READS -nb-cores $THREADS
+    -reads $READS -nb-cores $THREADS -max-mem $MAXMEM
 fi
 
 if [ ! -f tmp.filled.all.filter ]; then
   echo -e "Running Gap2Seq (filter-all)"
   python3 $SCRIPTS/filler.py -l $DATA/libraries.txt -g $DATA/gaps.fa \
     -b $DATA/breakpoints.bed -o tmp.filled.all.filter -t $THREADS \
-    -u $THRESHOLD
+    -u $THRESHOLD --max-mem $MAXMEM
 fi
 
 FILLED=""

@@ -60,12 +60,12 @@ while read BED; do
         $SAMTOOLS fasta - > overlap."$GAPLENGTH"."${MEANS[i]}".fa
     fi
 
-    # Extract filtered reads
+    # Filter reads
     if [ ! -f filter."$GAPLENGTH"."${MEANS[i]}".fa ]; then
-      $EXTRACT $DATA/aln."${MEANS[i]}".bam \
-        $READLENGTH ${MEANS[i]} ${STDDEVS[i]} \
-        $CONTIG $START $END $GAPLENGTH 1 1 $THRESHOLD \
-        > filter."$GAPLENGTH"."${MEANS[i]}".fa
+      $EXTRACT -bam $DATA/aln."${MEANS[i]}".bam \
+        -read-length $READLENGTH -mean ${MEANS[i]} -std-dev ${STDDEVS[i]} \
+        -scaffold $CONTIG -start $START -end $END \
+        -reads filter."$GAPLENGTH"."${MEANS[i]}".fa
     fi
 
     # Evaluate the schemes

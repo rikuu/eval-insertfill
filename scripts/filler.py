@@ -35,7 +35,10 @@ class Library:
             sys.exit(1)
 
     def data(self):
-        return '-bam %s -read-length %i -mean %i -std-dev %i' % (self.bam, self.len, self.mu, self.sd)
+        return ['-bam', self.bam,
+            '-read-length', str(self.len),
+            '-mean', str(self.mu),
+            '-std-dev', str(self.sd)]
 
 class Gap:
     def __init__(self, bed, gap, comment, id):
@@ -44,7 +47,9 @@ class Gap:
             self.comment, self.id = bed, gap, comment, id
 
     def data(self):
-        return '-scaffold %s -start %i -end %i' % (self.scaffold, self.start, self.end)
+        return ['-scaffold', str(self.scaffold),
+            '-start', str(self.start),
+            '-end', str(self.end)]
 
     def filler_data(self):
         return ['-left', self.left,
@@ -70,13 +75,8 @@ def fill_gap(libraries, gap, k, fuz, solid, threshold, max_mem):
 
     # Extract reads
     with open('tmp.extract.' + gap.id + '.log', 'w') as f:
-        unmapped = (threshold != -1)
-        exact = 1 # Exact is faster and more accurate
-
-        extract_params = '%i %i %i' % (exact, unmapped, threshold)
         for lib in libraries:
-            subprocess.check_call('%s %s %s %s >> tmp.reads.%s.fasta' %
-                (extract, lib.data(), gap.data(), extract_params, gap.id),
+            subprocess.check_call([extract] + gap.data() + lib.data(),
                 shell=True, stderr=f)
 
     # Run Gap2Seq on the gap with the filtered reads
