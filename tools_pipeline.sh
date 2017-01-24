@@ -21,13 +21,13 @@ done
 if [ ! -f tmp.filled.all.normal ]; then
   echo -e "Running Gap2Seq (normal-all)"
   $GAP2SEQ -filled tmp.filled.all.normal -scaffolds $DATA/gaps.fa \
-    -reads $READS -nb-cores $THREADS
+    -reads $READS -nb-cores $THREADS -max-mem $MAXMEM
 fi
 
 if [ ! -f tmp.filled.all.filter ]; then
   echo -e "Running Gap2Seq (filter-all)"
   python3 $SCRIPTS/filler.py -l $DATA/libraries.txt -g $DATA/gaps.fa \
-    -b $DATA/breakpoints.bed -o tmp.filled.all.filter -t $THREADS
+    -b $DATA/gaps.bed -o tmp.filled.all.filter -t $THREADS --max-mem $MAXMEM
 fi
 
 if [ ! -f tmp.filled.pindel ]; then

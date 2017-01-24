@@ -30,6 +30,4 @@ for ((i=0;i<${#MEANS[@]};++i)); do
       $SAMTOOLS rmdup -s - - > known_aln"$i".bam
     $SAMTOOLS index known_aln"$i".bam
   fi
-
-  # TODO: Create DBG for the reads here
 done

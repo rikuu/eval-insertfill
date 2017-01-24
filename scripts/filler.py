@@ -76,8 +76,9 @@ def fill_gap(libraries, gap, k, fuz, solid, threshold, max_mem):
     # Extract reads
     with open('tmp.extract.' + gap.id + '.log', 'w') as f:
         for lib in libraries:
-            subprocess.check_call([extract] + gap.data() + lib.data(),
-                shell=True, stderr=f)
+            subprocess.check_call([extract,
+                '-reads', 'tmp.reads.' + gap.id + '.fasta'] + gap.data() + lib.data(),
+                stderr=f)
 
     # Run Gap2Seq on the gap with the filtered reads
     fill = ''
@@ -305,7 +306,9 @@ if __name__ == '__main__':
 
     count_gaps(args['bed'])
 
-    pool = multiprocessing.Pool(args['threads'])
+    pool = None
+    if threads > 1:
+        pool = multiprocessing.Pool(args['threads'])
 
     # Gap2Seq divides the max mem evenly between threads, but as we run multiple
     # parallel instances with 1 thread, we need to pre-divide
