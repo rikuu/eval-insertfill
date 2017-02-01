@@ -31,7 +31,9 @@ while read BED; do
   START=$(echo $BED | cut -f2 -d' ')
   END=$(echo $BED | cut -f3 -d' ')
 
+  FLANKLENGTH=41
   GAPLENGTH=$(($END - $START - 82))
+  BREAKPOINT=$(($START + $FLANKLENGTH))
 
   for ((i=0;i<${#MEANS[@]};++i)); do
     # Extract all known gap-covering reads
@@ -50,7 +52,8 @@ while read BED; do
     if [ ! -f filter."$GAPLENGTH"."${MEANS[i]}".fa ]; then
       $EXTRACT -bam $DATA/aln."${MEANS[i]}".bam \
         -read-length $READLENGTH -mean ${MEANS[i]} -std-dev ${STDDEVS[i]} \
-        -scaffold $CONTIG -start $START -end $END \
+        -scaffold $CONTIG -breakpoint $BREAKPOINT -flank-length $FLANKLENGTH \
+        -gap-length $GAPLENGTH -unmapped $UNMAPPED \
         -reads filter."$GAPLENGTH"."${MEANS[i]}".fa
     fi
 
