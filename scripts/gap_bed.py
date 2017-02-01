@@ -55,7 +55,6 @@ for length in reversed(lengths):
     while overlap(gaps, gap):
         gap = gen(length)
     gaps += [gap]
-    # print(gaps)
 
 gaps = sorted(gaps, key = lambda g: g[0])
 

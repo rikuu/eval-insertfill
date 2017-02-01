@@ -28,7 +28,7 @@ if [ ! -f reference.fa ]; then
   $BWA index reference.fa
   $SAMTOOLS faidx reference.fa
 
-  # Extract the k-mers from each gap into format readable by MindTheGap
+  # Extract flanks from each gap into format used by MindTheGap
   python3 $SCRIPTS/gaps2mtg.py gaps.fa > mtg.gaps.fa
 fi
 

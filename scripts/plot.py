@@ -76,6 +76,7 @@ def format_axes(ax):
 
 def avg(l): return float(sum(l)) / len(l)
 def median(l):
+    if len(l) == 0: return 0
     if len(l) == 1: return l[0]
 
     s = sorted(l)
@@ -85,40 +86,27 @@ def median(l):
     else:
         return avg(s[m-1:m+1])
 
-# Remove highest and lowest values from all scores
-def cleanup(dd):
-    clean = copy.deepcopy(dd)
-    for length in dd.keys():
-        if len(dd[length]) > 3:
-            clean[length].remove(min(dd[length]))
-            clean[length].remove(max(dd[length]))
-    return clean
-
 def plot_between(ax, overlap, unmapped, filter, steps=50, legend=True):
-    lengths = sorted(filter.keys())
+    lengths = sorted(filter[150].keys())
     smooth_lengths = np.logspace(log(min(lengths), 10), log(max(lengths), 10), steps)
 
-    stripe = lambda d, f: [f(d[i]) for i in lengths]
-    smooth = lambda d, f: spline(lengths, stripe(d, f), smooth_lengths)
+    between = lambda d, f, i, j: [f(d[x]) for x in lengths if x >= i and x <= j]
+    smooth = lambda d, f: [f(between(d, f, i, j)) for i, j in zip([0]+smooth_lengths, smooth_lengths+[float("inf")])]
 
-    # for y, color in zip([filter, overlap, unmapped], [3, 5, 8]):
-    #     clean = cleanup(y)
-    #     ax.fill_between(lengths, stripe(clean, min), stripe(clean, max),
-    #         color=tableau20[color], alpha=0.15)
-
-    ax.plot(smooth_lengths, smooth(filter, median), '-',
-        smooth_lengths, smooth(overlap, median), '--',
-        smooth_lengths, smooth(unmapped, median), ':')
+    ax.plot(smooth_lengths, smooth(filter[150], avg), '-',
+        smooth_lengths, smooth(filter[1500], avg), '-',
+        smooth_lengths, smooth(filter[3000], avg), '-',
+        smooth_lengths, smooth(overlap, avg), '--',
+        smooth_lengths, smooth(unmapped, avg), ':')
 
     if legend:
-        ax.legend(['Filter (with unmapped)', 'Overlap', 'Unmapped'])
+        ax.legend(['Filter (150)', 'Filter (1500)', 'Filter (3000)', 'Overlap', 'Unmapped'])
 
 # Read scores
 #          Recall  Precision  F-score
 # overlap    0        1         2
 # unmapped   3        4         5
 # filter     6        7         8
-# filter2    9        10        11
 dds = [defaultdict(lambda: defaultdict(list)) for i in range(9)]
 
 with open(sys.argv[1], 'r') as f:
@@ -136,20 +124,40 @@ with open(sys.argv[1], 'r') as f:
 # latexify(fig_width=6.9*3, columns=2.5, rows=1)
 # fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
 # for l, ax in zip([150, 1500, 3000], [ax1, ax2, ax3]):
-#     # ax.set_ylabel("Recall")
-#     # plot_between(format_axes(ax), dds[0][l], dds[3][l], dds[6][l])#, dds[9][l])
-#     ax.set_ylabel("Precision")
-#     plot_between(format_axes(ax), dds[1][l], dds[4][l], dds[7][l])#, dds[10][l])
+#     ax.set_ylabel("Recall")
+#     plot_between(format_axes(ax), dds[0][l], dds[3][l], dds[6][l], sys.argv[2])
+#     # ax.set_ylabel("Precision")
+#     # plot_between(format_axes(ax), dds[1][l], dds[4][l], dds[7][l])
 #     # ax.set_ylabel("F-score")
-#     # plot_between(format_axes(ax), dds[2][l], dds[5][l], dds[8][l])#, dds[11][l])
+#     # plot_between(format_axes(ax), dds[2][l], dds[5][l], dds[8][l])
 # plt.show()
 
+def dictsum(a, b):
+    c = {}
+    for k in a.keys():
+        c[k] = a[k] + b[k]
+    return c
+
 latexify(columns=1.5)
-for l in [150, 1500, 3000]:
-    fig = plt.figure()
-    plot_between(format_axes(fig.add_subplot(111)), dds[1][l], dds[4][l], dds[7][l], legend=(l == 150))
-    #plot_between(format_axes(fig.add_subplot(111)), dds[0][l], dds[3][l], dds[6][l], legend=(l == 150))
-    plt.tight_layout()
-    if len(sys.argv) >= 2:
-        plt.savefig(sys.argv[2] + "." + str(l) + ".pgf")
-    fig.clf()
+fig = plt.figure()
+ax = fig.add_subplot(111)
+ax.set_ylabel("Recall")
+plot_between(format_axes(ax),
+    dictsum(dictsum(dds[0][150], dds[0][1500]), dds[0][3000]),
+    dictsum(dictsum(dds[3][150], dds[3][1500]), dds[3][3000]),
+    dds[6], sys.argv[2])
+# ax.set_ylabel("Precision")
+# plot_between(format_axes(ax), dds[1][l], dds[4][l], dds[7][l])
+# ax.set_ylabel("F-score")
+# plot_between(format_axes(ax), dds[2][l], dds[5][l], dds[8][l])
+plt.show()
+
+# latexify(columns=1.5)
+# for l in [150, 1500, 3000]:
+#     fig = plt.figure()
+#     plot_between(format_axes(fig.add_subplot(111)), dds[1][l], dds[4][l], dds[7][l], legend=(l == 150))
+#     #plot_between(format_axes(fig.add_subplot(111)), dds[0][l], dds[3][l], dds[6][l], legend=(l == 150))
+#     plt.tight_layout()
+#     if len(sys.argv) >= 2:
+#         plt.savefig(sys.argv[2] + "." + str(l) + ".pgf")
+#     fig.clf()
