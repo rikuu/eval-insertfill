@@ -53,7 +53,7 @@ while read BED; do
       $EXTRACT -bam $DATA/aln."${MEANS[i]}".bam \
         -read-length $READLENGTH -mean ${MEANS[i]} -std-dev ${STDDEVS[i]} \
         -scaffold $CONTIG -breakpoint $BREAKPOINT -flank-length $FLANKLENGTH \
-        -gap-length $GAPLENGTH -unmapped $UNMAPPED \
+        -gap-length $GAPLENGTH -unmapped $THRESHOLD \
         -reads filter."$GAPLENGTH"."${MEANS[i]}".fa
     fi
 

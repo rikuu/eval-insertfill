@@ -41,15 +41,15 @@ class Library:
             '-std-dev', str(self.sd)]
 
 class Gap:
-    def __init__(self, bed, gap, comment, id):
-        (self.scaffold, self.start, self.end), \
-            (self.left, self.right, self.length), \
-            self.comment, self.id = bed, gap, comment, id
+    def __init__(self, scaffold, position, length, left, right, comment, id):
+        self.scaffold, self.position = scaffold, position
+        self.left, self.right, self.length = left, right, length
+        self.comment, self.id = comment, id
 
     def data(self):
         return ['-scaffold', str(self.scaffold),
-            '-start', str(self.start),
-            '-end', str(self.end)]
+            '-breakpoint', str(self.position),
+            '-gap-length', str(self.length)]
 
     def filler_data(self):
         return ['-left', self.left,
@@ -77,8 +77,10 @@ def fill_gap(libraries, gap, k, fuz, solid, threshold, max_mem):
     with open('tmp.extract.' + gap.id + '.log', 'w') as f:
         for lib in libraries:
             subprocess.check_call([extract,
+                '-unmapped', threshold,
+                '-flank-length', str(k + fuz),
                 '-reads', 'tmp.reads.' + gap.id + '.fasta'] + gap.data() + lib.data(),
-                stderr=f)
+                stderr=f, stdout=f)
 
     # Run Gap2Seq on the gap with the filtered reads
     fill = ''
@@ -128,19 +130,17 @@ def parse_gap(bed, gap, id):
     # Parse gap data from bed file
     gap_data = bed.readline().rstrip().split('\t')
     scaffold = gap_data[0]
-    start = int(gap_data[1])
-    end = int(gap_data[2])
+    start = int(gap_data[1]) + len(left)
 
-    return Gap((scaffold, start, end), (left, right, length), comment, id)
+    return Gap(scaffold, position, length, left, right, comment, id)
 
 # Starts multiple gapfilling processes in parallel
-def start_fillers(bed, gaps, libraries, pool=None, async=False,
+def start_fillers(bed, gaps, libraries, pool=None,
         k=31, fuz=10, solid=2, threshold=25, max_mem=20):
     start_filler = lambda seq, gap_id: count_filled(fill_gap(libraries,
         parse_gap(bed, seq, str(gap_id)), k, fuz, solid, threshold, max_mem))
 
-    if async:
-        assert(pool != None)
+    if pool != None:
         start_filler = lambda seq, gap_id: pool.apply_async(fill_gap,
             args=([libraries, parse_gap(bed, seq, str(gap_id)), k, fuz, solid, threshold, max_mem]),
             callback=count_filled)
@@ -307,7 +307,7 @@ if __name__ == '__main__':
     count_gaps(args['bed'])
 
     pool = None
-    if threads > 1:
+    if args['threads'] > 1:
         pool = multiprocessing.Pool(args['threads'])
 
     # Gap2Seq divides the max mem evenly between threads, but as we run multiple
@@ -315,8 +315,7 @@ if __name__ == '__main__':
     max_mem = int(args['max_mem'] / args['threads'])
 
     print('Starting gapfillers')
-    start_fillers(args['bed'], args['gaps'], libraries,
-        pool=pool, async=(args['threads'] > 1),
+    start_fillers(args['bed'], args['gaps'], libraries, pool=pool,
         k=args['k'], fuz=args['fuz'], solid=args['solid'],
         threshold=args['unmapped_threshold'],
         max_mem=max_mem)
@@ -324,8 +323,9 @@ if __name__ == '__main__':
     args['bed'].close()
     args['gaps'].close()
 
-    pool.close()
-    pool.join()
+    if pool != None:
+        pool.close()
+        pool.join()
 
     num_success = 0
     if scaffolds_cut:
