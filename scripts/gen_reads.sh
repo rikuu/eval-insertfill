@@ -13,7 +13,7 @@ for ((i=0;i<${#MEANS[@]};++i)); do
     $SAMTOOLS sort reads"$i".sam | \
       $SAMTOOLS view - -b --threads $THREADS > known_aln"$i".bam
 
-    $SAMTOOLS index known_aln"$i".bamk
+    $SAMTOOLS index known_aln"$i".bam
 
     rm -f reads"$i"*.aln reads"$i".sam
 
