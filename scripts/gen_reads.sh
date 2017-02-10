@@ -5,29 +5,19 @@ source $DIR/configuration.sh
 
 cd $DATA
 
-# Index the source genome
-if [ ! -f $GENOME.amb ]; then
-  $BWA index $GENOME
-fi
-
 for ((i=0;i<${#MEANS[@]};++i)); do
   # Generate reads with the different parameters
   if [ ! -f reads"$i"_pe1.fq ]; then
-    $DWGSIM -i -1 $READLENGTH -2 $READLENGTH -d ${MEANS[i]} -s ${STDDEVS[i]} \
-      -C $COVERAGE $GENOME reads"$i"
-    rm reads"$i".bfast*
+    $ART -i $GENOME -l $READLENGTH -f $COVERAGE -m ${MEANS[i]} -s ${STDDEVS[i]} -sam -o reads"$i"
 
-    mv reads"$i".bwa.read1.fastq reads"$i"_pe1.fq
-    mv reads"$i".bwa.read2.fastq reads"$i"_pe2.fq
-  fi
+    $SAMTOOLS sort reads"$i".sam | \
+      $SAMTOOLS view - -b --threads $THREADS > known_aln"$i".bam
 
-  # Map-sort-index the reads
-  if [ ! -f known_aln"$i".bam ]; then
-    $BWA mem -t $THREADS -I ${MEANS[i]},${STDDEVS[i]} $GENOME reads"$i"_pe1.fq \
-        reads"$i"_pe2.fq | \
-      $SAMTOOLS view -Shu - | \
-      $SAMTOOLS sort - | \
-      $SAMTOOLS rmdup -s - - > known_aln"$i".bam
-    $SAMTOOLS index known_aln"$i".bam
+    $SAMTOOLS index known_aln"$i".bamk
+
+    rm -f reads"$i"*.aln reads"$i".sam
+
+    mv reads"$i"1.fq reads"$1"_pe1.fq
+    mv reads"$i"2.fq reads"$1"_pe2.fq
   fi
 done

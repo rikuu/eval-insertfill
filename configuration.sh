@@ -3,7 +3,7 @@
 DIR=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)
 
 # Required tools
-DWGSIM=/cs/work/scratch/riqwalve/DWGSIM/dwgsim
+ART=~/art_bin_MountRainier/art_illumina
 BEDTOOLS=/cs/work/scratch/riqwalve/bedtools2/bin/bedtools
 SAMTOOLS=~/samtools/samtools
 BWA=~/bwa/bwa
@@ -30,7 +30,7 @@ MEANS=(150 1500 3000)
 STDDEVS=(15 150 300)
 
 # Gap simulation parameters
-GAPNUM=100
+GAPNUM=30
 MINGAPLEN=11
 MAXGAPLEN=10000
 
