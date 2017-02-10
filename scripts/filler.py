@@ -64,8 +64,8 @@ def count_filled(result):
     global filled_gaps, num_of_gaps
     filled_gaps.append(result)
     with print_lock:
-        print('Progress %.3f [%i / %i]' % \
-            (len(filled_gaps) / num_of_gaps, len(filled_gaps), num_of_gaps),
+        print('Progress %.3f\% [%i / %i]' % \
+            (100*(len(filled_gaps) / num_of_gaps), len(filled_gaps), num_of_gaps),
             end='\r')
 
 # Runs all the read filtering and gap filling for a single gap
@@ -77,7 +77,7 @@ def fill_gap(libraries, gap, k, fuz, solid, threshold, max_mem):
     with open('tmp.extract.' + gap.id + '.log', 'w') as f:
         for lib in libraries:
             subprocess.check_call([extract,
-                '-unmapped', threshold,
+                '-unmapped', str(threshold),
                 '-flank-length', str(k + fuz),
                 '-reads', 'tmp.reads.' + gap.id + '.fasta'] + gap.data() + lib.data(),
                 stderr=f, stdout=f)
@@ -130,7 +130,7 @@ def parse_gap(bed, gap, id):
     # Parse gap data from bed file
     gap_data = bed.readline().rstrip().split('\t')
     scaffold = gap_data[0]
-    start = int(gap_data[1]) + len(left)
+    position = int(gap_data[1]) + len(left)
 
     return Gap(scaffold, position, length, left, right, comment, id)
 
@@ -323,7 +323,7 @@ if __name__ == '__main__':
     args['bed'].close()
     args['gaps'].close()
 
-    if pool != None:
+    if args['threads'] > 1:
         pool.close()
         pool.join()
 

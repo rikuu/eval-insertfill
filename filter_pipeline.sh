@@ -31,9 +31,7 @@ while read BED; do
   START=$(echo $BED | cut -f2 -d' ')
   END=$(echo $BED | cut -f3 -d' ')
 
-  FLANKLENGTH=41
   GAPLENGTH=$(($END - $START - 82))
-  BREAKPOINT=$(($START + $FLANKLENGTH))
 
   for ((i=0;i<${#MEANS[@]};++i)); do
     # Extract all known gap-covering reads
@@ -41,6 +39,17 @@ while read BED; do
       $SAMTOOLS view -u $DATA/known_aln"$i".bam "$CONTIG:$START-$END" | \
         $SAMTOOLS fasta - > known."$GAPLENGTH"."${MEANS[i]}".fa
     fi
+  done
+done < $DATA/gaps.bed
+
+while read BED; do
+  CONTIG=$(echo $BED | cut -f1 -d' ')
+  START=$(echo $BED | cut -f2 -d' ')
+  END=$(echo $BED | cut -f3 -d' ')
+
+  FLANKLENGTH=41
+  GAPLENGTH=$(($END - $START - 82))
+  BREAKPOINT=$(($START + $FLANKLENGTH))
 
     # Extract all overlapping reads
     if [ ! -f overlap."$GAPLENGTH"."${MEANS[i]}".fa ]; then
@@ -67,4 +76,4 @@ while read BED; do
 
     echo $GAPLENGTH ${MEANS[i]} ${STDDEVS[i]} $RESULTS >> results
   done
-done < $DATA/gaps.bed
+done < $DATA/breakpoints.bed
