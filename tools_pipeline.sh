@@ -27,7 +27,7 @@ fi
 if [ ! -f tmp.filled.all.filter ]; then
   echo -e "Running Gap2Seq (filter-all)"
   python3 $SCRIPTS/filler.py -l $DATA/libraries.txt -g $DATA/gaps.fa \
-    -b $DATA/gaps.bed -o tmp.filled.all.filter -t $THREADS --max-mem $MAXMEM
+    -b $DATA/breakpoints.bed -o tmp.filled.all.filter -t $THREADS --max-mem $MAXMEM
 fi
 
 if [ ! -f tmp.filled.pindel ]; then
@@ -43,7 +43,7 @@ fi
 if [ ! -f tmp.filled.mtg ]; then
   #$MINDTHEGAP find -in $READS -ref $DATA/reference.fa -out mtg
   $MINDTHEGAP fill -in $READS -bkpt $DATA/mtg.gaps.fa -out mtg
-  python3 $SCRIPTS/mtg2filled.py $DATA/gaps.fa mtg.insertions.fa > tmp.filled.mtg
+  python3 $SCRIPTS/mtg2filled.py $DATA/gaps.fa mtg.insertions.fasta > tmp.filled.mtg
 fi
 
 python3 $SCRIPTS/evaluate_fill.py $DATA/inserts.fa \

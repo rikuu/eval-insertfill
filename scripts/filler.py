@@ -64,50 +64,57 @@ def count_filled(result):
     global filled_gaps, num_of_gaps
     filled_gaps.append(result)
     with print_lock:
-        print('Progress %.3f\% [%i / %i]' % \
+        print('Progress %.3f%% [%i / %i]' % \
             (100*(len(filled_gaps) / num_of_gaps), len(filled_gaps), num_of_gaps),
             end='\r')
 
 # Runs all the read filtering and gap filling for a single gap
 def fill_gap(libraries, gap, k, fuz, solid, threshold, max_mem):
     # Cleanup, just to be sure
-    subprocess.check_call(['rm', '-f', 'tmp.reads.' + gap.id + '.fasta'])
+    reads_base = 'tmp.reads.' + gap.id + '.'
+    subprocess.check_call(['rm', '-f', reads_base + '*'])
 
     # Extract reads
+    reads = []
     with open('tmp.extract.' + gap.id + '.log', 'w') as f:
-        for lib in libraries:
+        for lib, i in enumerate(libraries):
             subprocess.check_call([extract,
                 '-unmapped', str(threshold),
                 '-flank-length', str(k + fuz),
-                '-reads', 'tmp.reads.' + gap.id + '.fasta'] + gap.data() + lib.data(),
+                '-reads', reads_base + str(i)] + gap.data() + lib.data(),
                 stderr=f, stdout=f)
+            reads += reads_base + str(i)
 
     # Run Gap2Seq on the gap with the filtered reads
-    fill = ''
+    log = ''
     with open('tmp.gap2seq.' + gap.id + '.log', 'w') as f:
-        fill = subprocess.check_output([gap2seq,
+        log = subprocess.check_output([gap2seq,
             '-k', str(k),
             '-fuz', str(fuz),
             '-solid', str(solid),
             '-nb-cores', '1',
             '-max-mem', str(max_mem),
-            '-reads', 'tmp.reads.' + gap.id + '.fasta'] + gap.filler_data(),
+            '-reads', ','.join(reads)] + gap.filler_data(),
             stderr=f)
 
-    # Gap2Seq outputs 'Gap2Seq\n' to stdout when exiting
+    # Gap2Seq output:
+    #  143 lines of graph information
+    #  1-2 lines of gap information
+    #  Filled sequence
+    #  'Gap2Seq'
+
     filled = False
-    fill = fill.split(b'\n')
-    if len(fill) > 1:
+    fill = log.split(b'\n')
+    if len(fill) > 145:
         filled = True
-        fill = ''.join([seq.decode() for seq in fill[:-2]])
+        fill = fill[-2].decode()
     else:
         fill = gap.left + ('N' * gap.length) + gap.right
 
-    # Cleanup reads and graph
-    subprocess.check_call(['rm', '-f',
-        'tmp.reads.' + gap.id + '.fasta',
-        'tmp.reads.' + gap.id + '.h5',
-        'tmp.reads.' + gap.id + '.bin'])
+    # log = log[143:-2]
+
+    # Cleanup reads
+    subprocess.check_call(['rm', '-f', ' '.join(reads)])
 
     # Remove logs and temporary/intermediate files
     subprocess.check_call(['rm', '-f',
@@ -256,7 +263,7 @@ if __name__ == '__main__':
     parser.add_argument('-k', type=int, default=31)
     parser.add_argument('--fuz', type=int, default=10)
     parser.add_argument('--solid', type=int, default=2)
-    parser.add_argument('--max-mem', type=int, default=20)
+    parser.add_argument('--max-mem', type=float, default=20)
 
     # Either a set of mapped read libraries or a set of fasta-formatted reads
     # TODO: Give help on formatting libraries.txt
@@ -312,7 +319,7 @@ if __name__ == '__main__':
 
     # Gap2Seq divides the max mem evenly between threads, but as we run multiple
     # parallel instances with 1 thread, we need to pre-divide
-    max_mem = int(args['max_mem'] / args['threads'])
+    max_mem = args['max_mem'] / args['threads']
 
     print('Starting gapfillers')
     start_fillers(args['bed'], args['gaps'], libraries, pool=pool,

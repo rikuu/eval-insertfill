@@ -7,6 +7,8 @@ ART=~/art_bin_MountRainier/art_illumina
 BEDTOOLS=/cs/work/scratch/riqwalve/bedtools2/bin/bedtools
 SAMTOOLS=~/samtools/samtools
 BWA=~/bwa/bwa
+BOWTIE=~/bowtie2-2.3.0/bowtie2
+BOWTIEBUILD=~/bowtie2-2.3.0/bowtie2-build
 
 GAP2SEQ=$DIR/Gap2Seq/build/Gap2Seq
 GAPCUTTER=$DIR/Gap2Seq/build/GapCutter
@@ -21,7 +23,7 @@ MINDTHEGAP=/cs/work/scratch/riqwalve/MindTheGap/build/bin/MindTheGap
 THREADS=16
 
 # Maximum memory usage for Gap2Seq (in Gb)
-MAXMEM=15
+MAXMEM=20
 
 # Read simulation parameters
 READLENGTH=100
@@ -36,7 +38,7 @@ MAXGAPLEN=10000
 
 # Threshold for using unmapped reads in filtering
 # Should probably be close but less than $COVERAGE
-THRESHOLD=15
+THRESHOLD=25
 
 # TODO: Run fix_chr17.py ?
 GENOME=$DIR/chr17.fa
