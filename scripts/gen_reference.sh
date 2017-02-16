@@ -25,8 +25,11 @@ if [ ! -f reference.fa ]; then
 
   # Remove all inserts from the masked donor to create a reference genome
   python3 $SCRIPTS/reference.py assembly.fa reference.fa
-  $BWA index reference.fa
   $SAMTOOLS faidx reference.fa
+
+  # Index reference for read alignment
+  # $BWA index reference.fa
+  $BOWTIEBUILD --threads $THREADS reference.fa reference
 
   # Extract flanks from each gap into format used by MindTheGap
   python3 $SCRIPTS/gaps2mtg.py gaps.fa > mtg.gaps.fa
@@ -37,11 +40,19 @@ for ((i=0;i<${#MEANS[@]};++i)); do
   if [ ! -f aln."${MEANS[i]}".bam ]; then
     # Map-sort-index reads to the reference genome
     echo -e "Aligning reads (${MEANS[i]})"
-    $BWA mem -t $THREADS -I ${MEANS[i]},${STDDEVS[i]} reference.fa \
-        reads"$i"_pe1.fq reads"$i"_pe2.fq | \
-      $SAMTOOLS view -Shu - | \
-      $SAMTOOLS sort - | \
-      $SAMTOOLS rmdup -s - - > aln."${MEANS[i]}".bam
+
+    $BOWTIE -p $THREADS -x reference \
+        -I $((${MEANS[i]} - 4*${STDDEVS[i]})) -X $((${MEANS[i]} + 4*${STDDEVS[i]})) \
+        -1 reads"$i"_pe1.fq -2 reads"$i"_pe2.fq | \
+      $SAMTOOLS sort - \
+      $SAMTOOLS view -bh --threads $THREADS - > aln."${MEANS[i]}".bam
+
+    # $BWA mem -t $THREADS -I ${MEANS[i]},${STDDEVS[i]} reference.fa \
+    #     reads"$i"_pe1.fq reads"$i"_pe2.fq | \
+    #   $SAMTOOLS view -Shu - | \
+    #   $SAMTOOLS sort - | \
+    #   $SAMTOOLS rmdup -s - - > aln."${MEANS[i]}".bam
+
     $SAMTOOLS index aln."${MEANS[i]}".bam
   fi
 
