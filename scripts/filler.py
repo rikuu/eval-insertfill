@@ -77,13 +77,13 @@ def fill_gap(libraries, gap, k, fuz, solid, threshold, max_mem):
     # Extract reads
     reads = []
     with open('tmp.extract.' + gap.id + '.log', 'w') as f:
-        for lib, i in enumerate(libraries):
+        for i, lib in enumerate(libraries):
             subprocess.check_call([extract,
                 '-unmapped', str(threshold),
                 '-flank-length', str(k + fuz),
                 '-reads', reads_base + str(i)] + gap.data() + lib.data(),
                 stderr=f, stdout=f)
-            reads += reads_base + str(i)
+            reads.append(reads_base + str(i))
 
     # Run Gap2Seq on the gap with the filtered reads
     log = ''
@@ -105,9 +105,9 @@ def fill_gap(libraries, gap, k, fuz, solid, threshold, max_mem):
 
     filled = False
     fill = log.split(b'\n')
-    if len(fill) > 145:
+    if len(fill) > 146:
         filled = True
-        fill = fill[-2].decode()
+        fill = fill[-3].decode()
     else:
         fill = gap.left + ('N' * gap.length) + gap.right
 
