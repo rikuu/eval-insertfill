@@ -46,10 +46,11 @@ done < $DATA/gaps.bed
 
 I=0
 while read BED; do
+  # Using breakpoints means END = START+82
   CONTIG=$(echo $BED | cut -f1 -d' ')
   START=$(echo $BED | cut -f2 -d' ')
   END=$(echo $BED | cut -f3 -d' ')
-  
+
   GAPLENGTH=${GAPLENGTHS[I]}
   I=$(($I + 1))
 
@@ -57,10 +58,15 @@ while read BED; do
   BREAKPOINT=$(($START + $FLANKLENGTH))
 
   for ((i=0;i<${#MEANS[@]};++i)); do
-    # Extract all overlapping reads
+    # Overlapping reads
     if [ ! -f overlap."$GAPLENGTH"."${MEANS[i]}".fa ]; then
       $SAMTOOLS view -u $DATA/aln."${MEANS[i]}".bam "$CONTIG:$START-$END" | \
         $SAMTOOLS fasta - > overlap."$GAPLENGTH"."${MEANS[i]}".fa
+    fi
+
+    # GapFiller-style filtering
+    if [ ! -f gapfiller."$GAPLENGTH"."${MEANS[i]}".fa ]; then
+      python3 $SCRIPTS/gapfiller_filter.py $START $END $((0.25 * ${MEANS[i]})) > gapfiller."$GAPLENGTH"."${MEANS[i]}".fa
     fi
 
     # Filter reads
@@ -76,8 +82,9 @@ while read BED; do
     RESULTS=$(python3 $SCRIPTS/evaluate.py \
       aln."${MEANS[i]}".fa \
       known."$GAPLENGTH"."${MEANS[i]}".fa \
-      overlap."$GAPLENGTH"."${MEANS[i]}".fa \
       unmapped."${MEANS[i]}".fa \
+      overlap."$GAPLENGTH"."${MEANS[i]}".fa \
+      gapfiller."$GAPLENGTH"."${MEANS[i]}".fa \
       filter."$GAPLENGTH"."${MEANS[i]}".fa)
 
     echo $GAPLENGTH ${MEANS[i]} ${STDDEVS[i]} $RESULTS >> results

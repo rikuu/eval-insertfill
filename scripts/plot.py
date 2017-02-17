@@ -86,28 +86,31 @@ def median(l):
     else:
         return avg(s[m-1:m+1])
 
-def plot_between(ax, overlap, unmapped, filter, steps=50, legend=True):
+def plot_between(ax, unmapped, overlap, gapfiller, filter, steps=50, legend=True):
     lengths = sorted(filter[150].keys())
     smooth_lengths = np.logspace(log(min(lengths), 10), log(max(lengths), 10), steps)
 
     between = lambda d, f, i, j: [f(d[x]) for x in lengths if x >= i and x <= j]
     smooth = lambda d, f: [f(between(d, f, i, j)) for i, j in zip([0]+smooth_lengths, smooth_lengths+[float("inf")])]
 
-    ax.plot(smooth_lengths, smooth(filter[150], avg), '-',
-        smooth_lengths, smooth(filter[1500], avg), '-',
-        smooth_lengths, smooth(filter[3000], avg), '-',
-        smooth_lengths, smooth(overlap, avg), '--',
-        smooth_lengths, smooth(unmapped, avg), ':')
+    ax.plot(smooth_lengths, smooth(filter[150], median), '-',
+        smooth_lengths, smooth(filter[1500], median), '-',
+        smooth_lengths, smooth(filter[3000], median), '-',
+        smooth_lengths, smooth(unmapped, median), ':',
+        smooth_lengths, smooth(overlap, median), '--',
+        smooth_lengths, smooth(gapfiller, median), '--')
 
     if legend:
-        ax.legend(['Filter (150)', 'Filter (1500)', 'Filter (3000)', 'Overlap', 'Unmapped'])
+        ax.legend(['Filter (150)', 'Filter (1500)', 'Filter (3000)',
+            'Unmapped', 'Overlap', 'GapFiller'])
 
 # Read scores
 #          Recall  Precision  F-score
-# overlap    0        1         2
-# unmapped   3        4         5
-# filter     6        7         8
-dds = [defaultdict(lambda: defaultdict(list)) for i in range(9)]
+# unmapped   0        1         2
+# overlap    3        4         5
+# gapfiller  6        7         8
+# filter     9        10        11
+dds = [defaultdict(lambda: defaultdict(list)) for i in range(12)]
 
 with open(sys.argv[1], 'r') as f:
   for l in f:
@@ -118,19 +121,8 @@ with open(sys.argv[1], 'r') as f:
     mean = int(d[1])
     stddev = int(d[2])
 
-    for i in range(9):
+    for i in range(12):
         dds[i][mean][length].append(float(d[i+3]))
-
-# latexify(fig_width=6.9*3, columns=2.5, rows=1)
-# fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
-# for l, ax in zip([150, 1500, 3000], [ax1, ax2, ax3]):
-#     ax.set_ylabel("Recall")
-#     plot_between(format_axes(ax), dds[0][l], dds[3][l], dds[6][l], sys.argv[2])
-#     # ax.set_ylabel("Precision")
-#     # plot_between(format_axes(ax), dds[1][l], dds[4][l], dds[7][l])
-#     # ax.set_ylabel("F-score")
-#     # plot_between(format_axes(ax), dds[2][l], dds[5][l], dds[8][l])
-# plt.show()
 
 def dictsum(a, b):
     c = {}
@@ -145,19 +137,22 @@ ax.set_ylabel("Recall")
 plot_between(format_axes(ax),
     dictsum(dictsum(dds[0][150], dds[0][1500]), dds[0][3000]),
     dictsum(dictsum(dds[3][150], dds[3][1500]), dds[3][3000]),
-    dds[6], sys.argv[2])
+    dictsum(dictsum(dds[6][150], dds[6][1500]), dds[6][3000]),
+    dds[9], sys.argv[2])
 # ax.set_ylabel("Precision")
-# plot_between(format_axes(ax), dds[1][l], dds[4][l], dds[7][l])
+# plot_between(format_axes(ax),
+#     dictsum(dictsum(dds[1][150], dds[1][1500]), dds[1][3000]),
+#     dictsum(dictsum(dds[4][150], dds[4][1500]), dds[4][3000]),
+#     dictsum(dictsum(dds[7][150], dds[7][1500]), dds[7][3000]),
+#     dds[10], sys.argv[2])
 # ax.set_ylabel("F-score")
-# plot_between(format_axes(ax), dds[2][l], dds[5][l], dds[8][l])
-plt.show()
-
-# latexify(columns=1.5)
-# for l in [150, 1500, 3000]:
-#     fig = plt.figure()
-#     plot_between(format_axes(fig.add_subplot(111)), dds[1][l], dds[4][l], dds[7][l], legend=(l == 150))
-#     #plot_between(format_axes(fig.add_subplot(111)), dds[0][l], dds[3][l], dds[6][l], legend=(l == 150))
-#     plt.tight_layout()
-#     if len(sys.argv) >= 2:
-#         plt.savefig(sys.argv[2] + "." + str(l) + ".pgf")
-#     fig.clf()
+# plot_between(format_axes(ax),
+#     dictsum(dictsum(dds[2][150], dds[2][1500]), dds[2][3000]),
+#     dictsum(dictsum(dds[5][150], dds[5][1500]), dds[5][3000]),
+#     dictsum(dictsum(dds[8][150], dds[8][1500]), dds[8][3000]),
+#     dds[11], sys.argv[2])
+plt.tight_layout()
+if len(sys.argv) == 4:
+    plt.savefig(sys.argv[3])
+else:
+    plt.show()
