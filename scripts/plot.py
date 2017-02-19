@@ -77,7 +77,10 @@ def format_axes(ax):
 
     return ax
 
-def avg(l): return float(sum(l)) / len(l)
+def avg(l):
+    if len(l) == 0: return 0
+    return float(sum(l)) / len(l)
+
 def median(l):
     if len(l) == 0: return 0
     if len(l) == 1: return l[0]
@@ -97,7 +100,7 @@ def plot_between(ax, plots, steps=50, legend=True):
     smooth = lambda d, f: [f(between(d, f, i, j)) for i, j in zip([0]+smooth_lengths, smooth_lengths+[float("inf")])][1:-1]
 
     for plot in plots:
-        ax.plot(smooth_lengths[:-1], smooth(plot[0], median), plot[2], label=plot[1])
+        ax.plot(smooth_lengths[:-1], smooth(plot[0], avg), plot[2], label=plot[1])
 
     if legend:
         ax.legend()
@@ -122,11 +125,13 @@ with open(sys.argv[1], 'r') as f:
     for i in range(12):
         dds[i][mean][length].append(float(d[i+3]))
 
-def dictsum(a, b, c):
-    assert(a.keys() == b.keys() and a.keys() == c.keys())
+def dictsum(*args):
+    for arg in args:
+        assert(args[0].keys() == arg.keys())
+
     s = {}
-    for k in a.keys():
-        s[k] = a[k] + b[k] + c[k]
+    for k in args[0].keys():
+        s[k] = [v for v in arg[k] for arg in args]
     return s
 
 latexify(columns=1.5)

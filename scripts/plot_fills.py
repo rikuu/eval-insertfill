@@ -86,33 +86,39 @@ def format_axes(ax):
 dds = [defaultdict(lambda: defaultdict(list)) for i in range(3)]
 
 with open(sys.argv[1], 'r') as f:
-  for l in f:
-    # LENGTH MEAN STDDEV FILTER NORMAL
-    d = l.rstrip().split()
+    for l in f:
+        # Skip table at end
+        if ':\t' in l: continue
 
-    length = int(d[0]) - 82
-    #mean = int(d[1])
-    #stddev = int(d[2])
+        # LENGTH MEAN STDDEV FILTER NORMAL
+        d = l.rstrip().split()
 
-    norm = lambda i, offset=0: float(d[i]) / (length + offset)
+        length = int(d[0]) - 82
+        #mean = int(d[1])
+        #stddev = int(d[2])
 
-    if sys.argv[2] != 'indel':
-        dds[0][9000][length].append(norm(1, 82)) # offset by flank length
-        dds[1][9000][length].append(norm(2, 82))
-        dds[2][9000][length].append(norm(3, 0))
-    else:
-        dds[0][150][length].append(norm(1))
-        dds[1][150][length].append(norm(2))
-        dds[0][1500][length].append(norm(3))
-        dds[1][1500][length].append(norm(4))
-        dds[0][3000][length].append(norm(5))
-        dds[1][3000][length].append(norm(6))
+        norm = lambda i, offset=0: float(d[i]) / (length + offset)
 
-        # NOTE: 9000 = all reads
-        dds[0][9000][length].append(norm(7))
-        dds[1][9000][length].append(norm(8))
+        if sys.argv[2] != 'indel':
+            dds[0][9000][length].append(norm(1, 82)) # offset by flank length
+            dds[1][9000][length].append(norm(2, 82))
+            dds[2][9000][length].append(norm(3, 0))
+        else:
+            dds[0][150][length].append(norm(1))
+            dds[1][150][length].append(norm(2))
+            dds[0][1500][length].append(norm(3))
+            dds[1][1500][length].append(norm(4))
+            dds[0][3000][length].append(norm(5))
+            dds[1][3000][length].append(norm(6))
 
-def avg(l): return sum(l) / len(l)
+            # NOTE: 9000 = all reads
+            dds[0][9000][length].append(norm(7))
+            dds[1][9000][length].append(norm(8))
+
+def avg(l):
+    if len(l) == 0: return 0
+    return sum(l) / len(l)
+
 def median(l):
     if len(l) == 0: return 0
     if len(l) == 1: return l[0]
@@ -124,11 +130,13 @@ def median(l):
     else:
         return avg(s[m-1:m+1])
 
-def dictsum(a, b, c, d):
-    assert(a.keys() == b.keys() and a.keys() == c.keys() and a.keys() == d.keys())
+def dictsum(*args):
+    for arg in args:
+        assert(args[0].keys() == arg.keys())
+
     s = {}
-    for k in a.keys():
-        s[k] = a[k] + b[k] + c[k] + d[k]
+    for k in args[0].keys():
+        s[k] = sum([arg[k] for arg in args])
     return s
 
 def plot_fills(ax, plots, steps=50, legend=True):
@@ -140,7 +148,7 @@ def plot_fills(ax, plots, steps=50, legend=True):
     smooth = lambda d, f: [f(between(d, f, i, j)) for i, j in zip([0]+smooth_lengths, smooth_lengths+[float("inf")])][1:-1]
 
     for plot in plots:
-        ax.plot(smooth_lengths[:-1], smooth(plot[0], median), plot[2], label=plot[1])
+        ax.plot(smooth_lengths[:-1], smooth(plot[0], avg), plot[2], label=plot[1])
 
     if legend:
         ax.legend()
