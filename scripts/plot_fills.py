@@ -3,8 +3,11 @@ import matplotlib
 import matplotlib.pyplot as plt
 from math import sqrt, log
 from collections import defaultdict
-from scipy.interpolate import spline
 import numpy as np
+
+if len(sys.argv) < 4:
+    print('Usage: %s <results> <"table","tools","indel"> <sampling rate> [.pgf]' % sys.argv[0])
+    sys.exit(1)
 
 SPINE_COLOR = 'gray'
 
@@ -70,9 +73,9 @@ def format_axes(ax):
     ax.set_xscale('log')
     # ax.set_yscale('log')
     ax.set_xlabel("Gap Length (log)")
-    ax.set_ylabel("1 - Normalized Edit Distance")
+    ax.set_ylabel("Normalized Edit Distance")
 
-    ax.set_ylim([0.0, 1.0])
+    # ax.set_ylim([0.0, 1.0])
 
     return ax
 
@@ -87,92 +90,96 @@ with open(sys.argv[1], 'r') as f:
     # LENGTH MEAN STDDEV FILTER NORMAL
     d = l.rstrip().split()
 
-    length = int(d[0])
-
+    length = int(d[0]) - 82
     #mean = int(d[1])
     #stddev = int(d[2])
 
-    norm = lambda i, offset: 1. - (float(d[i]) / (length + offset))
+    norm = lambda i, offset=0: float(d[i]) / (length + offset)
 
-    dds[0][9000][length].append(norm(1, 84)) # offset by flank length
-    dds[1][9000][length].append(norm(2, 84))
-    dds[2][9000][length].append(norm(3, 0))
+    if sys.argv[2] != 'indel':
+        dds[0][9000][length].append(norm(1, 82)) # offset by flank length
+        dds[1][9000][length].append(norm(2, 82))
+        dds[2][9000][length].append(norm(3, 0))
+    else:
+        dds[0][150][length].append(norm(1))
+        dds[1][150][length].append(norm(2))
+        dds[0][1500][length].append(norm(3))
+        dds[1][1500][length].append(norm(4))
+        dds[0][3000][length].append(norm(5))
+        dds[1][3000][length].append(norm(6))
 
-    # dds[0][150][length].append(norm(1))
-    # dds[1][150][length].append(norm(2))
-    # dds[0][1500][length].append(norm(3))
-    # dds[1][1500][length].append(norm(4))
-    # dds[0][3000][length].append(norm(5))
-    # dds[1][3000][length].append(norm(6))
-    #
-    # # NOTE: 9000 = all reads
-    # dds[0][9000][length].append(norm(7))
-    # dds[1][9000][length].append(norm(8))
+        # NOTE: 9000 = all reads
+        dds[0][9000][length].append(norm(7))
+        dds[1][9000][length].append(norm(8))
 
-def plot_fills(ax, plots, legend=True, steps=50):
+def avg(l): return sum(l) / len(l)
+def median(l):
+    if len(l) == 0: return 0
+    if len(l) == 1: return l[0]
+
+    s = sorted(l)
+    m = int(len(l) / 2)
+    if len(l) % 2 == 1:
+        return s[m]
+    else:
+        return avg(s[m-1:m+1])
+
+def dictsum(a, b, c, d):
+    assert(a.keys() == b.keys() and a.keys() == c.keys() and a.keys() == d.keys())
+    s = {}
+    for k in a.keys():
+        s[k] = a[k] + b[k] + c[k] + d[k]
+    return s
+
+def plot_fills(ax, plots, steps=50, legend=True):
     lengths = sorted(plots[0][0].keys())
     print(min(lengths), max(lengths))
-    smooth_lengths = np.logspace(log(min(lengths), 10), log(max(lengths), 10), steps)
+    smooth_lengths = np.logspace(log(min(lengths), 10), log(max(lengths), 10), steps).tolist()
 
-    average = lambda l: sum(l) / float(len(l))
-    stripe = lambda d, f: [f(d[i]) for i in lengths]
-    smooth = lambda d, f: spline(lengths, stripe(d, f), smooth_lengths)
+    between = lambda d, f, i, j: [f(d[x]) for x in lengths if x >= i and x <= j]
+    smooth = lambda d, f: [f(between(d, f, i, j)) for i, j in zip([0]+smooth_lengths, smooth_lengths+[float("inf")])][1:-1]
 
-    ax.plot(smooth_lengths, smooth(plots[0][0], average), '--',
-            smooth_lengths, smooth(plots[1][0], average), '-',
-            smooth_lengths, smooth(plots[2][0], average), '-')
+    for plot in plots:
+        ax.plot(smooth_lengths[:-1], smooth(plot[0], median), plot[2], label=plot[1])
 
     if legend:
-        ax.legend([plot[1] for plot in plots])
+        ax.legend()
 
 ##### Print table
-avg = lambda data: sum(data) / len(data)
-part = lambda data, low, high: [x for x in data if x >= low and x <= high]
-count = lambda data, indices: avg([avg(data[index]) for index in indices])
-avg_in = lambda data, low, high: count(data, part(data.keys(), low, high))
-all_tools = lambda low, high: [round(avg_in(dds[i][9000], low, high), 3) for i in [2, 0, 1]]
-splits = [0, 100, 300, 500, 1000, 10000]
-for low, high in zip(splits[:-1], splits[1:]):
-    print(low, '--', high, all_tools(low, high))
-#print([all_tools(low, high) for low, high in [(0, 100), (100, 500), (500, 1000), (1000, 5000), (5000, 10000)])
+if sys.argv[2] == 'table':
+    avg = lambda data: sum(data) / len(data)
+    part = lambda data, low, high: [x for x in data if x >= low and x <= high]
+    count = lambda data, indices: avg([avg(data[index]) for index in indices])
+    avg_in = lambda data, low, high: count(data, part(data.keys(), low, high))
+    all_tools = lambda low, high: [round(avg_in(dds[i][9000], low, high), 3) for i in [2, 0, 1]]
+    splits = [0, 100, 300, 500, 1000, 10000]
+    for low, high in zip(splits[:-1], splits[1:]):
+        print(low, '--', high, all_tools(low, high))
+    #print([all_tools(low, high) for low, high in [(0, 100), (100, 500), (500, 1000), (1000, 5000), (5000, 10000)])
+    sys.exit(0)
 
-##### Show tools
 # latexify(fig_width=6.9*1.5, columns=1, rows=1)
-# fig, (ax) = plt.subplots(1, 1)
-# plots = [(dds[0][9000], 'All reads'),
-#     (dds[1][9000], 'Filter'),
-#     (dds[2][9000], 'MindTheGap')]
-# plot_fills(format_axes(ax), plots)
-# plt.tight_layout()
-# plt.show()
+latexify(rows=1.3, columns=1.5)
+fig = plt.figure()
+ax = fig.add_subplot(111)
 
-##### Save tools
-# latexify(rows=1.3, columns=1.5)
-# fig = plt.figure()
-# plot_fills(format_axes(fig.add_subplot(111)),
-#     [(dds[0][9000], 'All reads'),
-#      (dds[1][9000], 'Filter'),
-#      (dds[2][9000], 'MindTheGap')])
-# plt.tight_layout()
-# if len(sys.argv) >= 2:
-#     plt.savefig(sys.argv[2] + ".pgf")
+##### Plot tools
+if sys.argv[2] == 'tools':
+    plots = [(dds[0][9000], 'Gap2Seq', '--'),
+        (dds[1][9000], 'Gap2Seq with filtering', '-'),
+        (dds[2][9000], 'MindTheGap', '-')]
+    plot_fills(format_axes(ax), plots, sys.argv[3])
 
-##### Show fills
-# latexify(fig_width=6.9*4, columns=3, rows=1)
-# fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4)
-# for ax, l in zip([ax1, ax2, ax3, ax4], [150, 1500, 3000, 9000]):
-#     plots = [(dds[0][l], 'All reads'), (dds[1][l], 'Filter')]
-#     plot_fills(format_axes(ax), plots)
-# plt.tight_layout()
-# plt.show()
+##### Plot fills
+if sys.argv[2] == 'indel':
+    plots = [(dictsum(dds[0][150], dds[0][1500], dds[0][3000], dds[0][9000]), 'All reads', '--'),
+        (dds[1][150], 'Filter (150)', '-'),
+        (dds[1][1500], 'Filter (1500)', '-'),
+        (dds[1][3000], 'Filter (3000)', '-')]
+    plot_fills(format_axes(ax), plots, sys.argv[3])
 
-##### Save fills
-# latexify(columns=1.5)
-# for l in [150, 1500, 3000, 9000]:
-#     fig = plt.figure()
-#     plots = [(dds[0][l], 'All reads'), (dds[1][l], 'Filter')]
-#     plot_fills(format_axes(fig.add_subplot(111)), plots, l == 150)
-#     plt.tight_layout()
-#     if len(sys.argv) >= 2:
-#         plt.savefig(sys.argv[2] + "." + str(l) + ".pgf")
-#     fig.clf()
+plt.tight_layout()
+if len(sys.argv) == 5:
+    plt.savefig(sys.argv[4])
+else:
+    plt.show()
