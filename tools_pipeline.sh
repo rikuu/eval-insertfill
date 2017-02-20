@@ -20,18 +20,21 @@ done
 
 if [ ! -f tmp.filled.all.normal ]; then
   echo -e "Running Gap2Seq (normal-all)"
-  $GAP2SEQ -filled tmp.filled.all.normal -scaffolds $DATA/gaps.fa \
-    -reads $READS -nb-cores $THREADS -max-mem $MAXMEM
+  $TIME -v $GAP2SEQ -filled tmp.filled.all.normal -scaffolds $DATA/gaps.fa \
+    -reads $READS -nb-cores $THREADS -max-mem $MAXMEM \
+    2> gap2seq.stderr 1> gap2seq.stdout
 fi
 
 if [ ! -f tmp.filled.all.filter ]; then
   echo -e "Running Gap2Seq (filter-all)"
-  python3 $SCRIPTS/filler.py -l $DATA/libraries.txt -g $DATA/gaps.fa \
-    -b $DATA/breakpoints.bed -o tmp.filled.all.filter -t $THREADS --max-mem $MAXMEM
+  $TIME -v python3 $SCRIPTS/filler.py -l $DATA/libraries.txt -g $DATA/gaps.fa \
+    -b $DATA/breakpoints.bed -o tmp.filled.all.filter -t $THREADS \
+    --max-mem $MAXMEM 2> gap2seq.filter.stderr 1> gap2seq.filter.stdout
 fi
 
 if [ ! -f tmp.filled.pindel ]; then
-  $PINDEL -f $DATA/reference.fa -i $DATA/pindel.txt -o pindel
+  $TIME -v $PINDEL -f $DATA/reference.fa -i $DATA/pindel.txt -o pindel \
+    2> pindel.stderr 1> pindel.stdout
 
   $PINDEL2VCF -p pindel_LI -r $DATA/reference.fa -R chr17_1 -d 20160612
   python3 $SCRIPTS/vcf2filled.py $DATA/inserts.bed pindel_LI.vcf > tmp.filled.pindel
@@ -42,10 +45,11 @@ fi
 
 if [ ! -f tmp.filled.mtg ]; then
   #$MINDTHEGAP find -in $READS -ref $DATA/reference.fa -out mtg
-  $MINDTHEGAP fill -in $READS -bkpt $DATA/mtg.gaps.fa -out mtg
+  $TIME -v $MINDTHEGAP fill -in $READS -bkpt $DATA/mtg.gaps.fa -out mtg \
+    2> mindthegap.stderr 1> mindthegap.stdout
   python3 $SCRIPTS/mtg2filled.py $DATA/gaps.fa mtg.insertions.fasta > tmp.filled.mtg
 fi
 
 python3 $SCRIPTS/evaluate_fill.py $DATA/inserts.fa \
   tmp.filled.all.normal tmp.filled.all.filter \
-  tmp.filled.pindel tmp.filled.mtg > results_tools
+  tmp.filled.pindel tmp.filled.mtg > results

@@ -53,4 +53,4 @@ for ((i=0;i<${#MEANS[@]};++i)); do
 done
 
 python3 $SCRIPTS/evaluate_fill.py $DATA/inserts.fa $FILLED \
-  tmp.filled.all.normal tmp.filled.all.filter > results_fills
+  tmp.filled.all.normal tmp.filled.all.filter > results

@@ -2,22 +2,40 @@
 
 DIR=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)
 
-# Required tools
+############################ TOOLS ##########################################
+
+# https://www.niehs.nih.gov/research/resources/software/biostatistics/art/
 ART=~/art_bin_MountRainier/art_illumina
-BEDTOOLS=/cs/work/scratch/riqwalve/bedtools2/bin/bedtools
+
+# http://bedtools.readthedocs.io/en/latest/
+BEDTOOLS=~/bedtools2/bin/bedtools
+
+# https://github.com/samtools/samtools
 SAMTOOLS=~/samtools/samtools
+
+# http://bio-bwa.sourceforge.net
 BWA=~/bwa/bwa
+
+# http://bowtie-bio.sourceforge.net/index.shtml
 BOWTIE=~/bowtie2-2.3.0/bowtie2
 BOWTIEBUILD=~/bowtie2-2.3.0/bowtie2-build
 
+# https://github.com/genome/pindel
+PINDEL=~/pindel/pindel
+PINDEL2VCF=~/pindel/pindel2vcf
+
+# https://github.com/GATB/MindTheGap
+MINDTHEGAP=~/MindTheGap/build/bin/MindTheGap
+
+# GNU time
+TIME=/usr/bin/time
+
+# Included as git submodules
 GAP2SEQ=$DIR/Gap2Seq/build/Gap2Seq
 GAPCUTTER=$DIR/Gap2Seq/build/GapCutter
-
 EXTRACT=$DIR/extract/build/extract
 
-PINDEL=/cs/work/scratch/riqwalve/pindel/pindel
-PINDEL2VCF=/cs/work/scratch/riqwalve/pindel/pindel2vcf
-MINDTHEGAP=/cs/work/scratch/riqwalve/MindTheGap/build/bin/MindTheGap
+############################ PARAMETERS ######################################
 
 # Number of threads used in all tools
 THREADS=16
