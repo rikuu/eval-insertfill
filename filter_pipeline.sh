@@ -66,7 +66,9 @@ while read BED; do
 
     # GapFiller-style filtering
     if [ ! -f gapfiller."$GAPLENGTH"."${MEANS[i]}".fa ]; then
-      python3 $SCRIPTS/gapfiller_filter.py $START $END $((0.25 * ${MEANS[i]})) > gapfiller."$GAPLENGTH"."${MEANS[i]}".fa
+      python3 $SCRIPTS/gapfiller_filter.py $DATA/aln."${MEANS[i]}".bam \
+        $CONTIG $START $END \
+        $((${MEANS[i]} / 4)) > gapfiller."$GAPLENGTH"."${MEANS[i]}".fa
     fi
 
     # Filter reads
