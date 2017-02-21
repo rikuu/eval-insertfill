@@ -83,7 +83,7 @@ def format_axes(ax):
 #        similarity
 # normal    0
 # filter    1
-dds = [defaultdict(lambda: defaultdict(list)) for i in range(3)]
+dds = [defaultdict(lambda: defaultdict(list)) for i in range(7)]
 
 with open(sys.argv[1], 'r') as f:
     for l in f:
@@ -103,6 +103,10 @@ with open(sys.argv[1], 'r') as f:
             dds[0][9000][length].append(norm(1, 82)) # offset by flank length
             dds[1][9000][length].append(norm(2, 82))
             dds[2][9000][length].append(norm(3, 0))
+            dds[3][9000][length].append(norm(4, 0))
+            dds[4][9000][length].append(norm(5, 0))
+            dds[5][9000][length].append(norm(6, 0))
+            dds[6][9000][length].append(norm(6, 0))
         else:
             dds[0][150][length].append(norm(1))
             dds[1][150][length].append(norm(2))
@@ -175,7 +179,11 @@ ax = fig.add_subplot(111)
 if sys.argv[2] == 'tools':
     plots = [(dds[0][9000], 'Gap2Seq', '--'),
         (dds[1][9000], 'Gap2Seq with filtering', '-'),
-        (dds[2][9000], 'MindTheGap', '-')]
+        (dds[2][9000], 'Pindel', '-'),
+        (dds[3][9000], 'MindTheGap', '-'),
+        (dds[4][9000], 'GapFiller', '-'),
+        (dds[5][9000], 'GapCloser', '-'),
+        (dds[6][9000], 'Sealer', '-')]
     plot_fills(format_axes(ax), plots, sys.argv[3])
 
 ##### Plot fills

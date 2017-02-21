@@ -16,7 +16,7 @@ cd $OUT
 READS_SPACE="$DATA/reads0_pe1.fq $DATA/reads0_pe2.fq"
 READS_COMMA="$DATA/reads0_pe1.fq,$DATA/reads0_pe2.fq"
 for ((i=1;i<${#MEANS[@]};++i)); do
-  READS_SPACE="$READS,$DATA/reads"$i"_pe1.fq $DATA/reads"$i"_pe2.fq"
+  READS_SPACE="$READS $DATA/reads"$i"_pe1.fq $DATA/reads"$i"_pe2.fq"
   READS_COMMA="$READS,$DATA/reads"$i"_pe1.fq,$DATA/reads"$i"_pe2.fq"
 done
 
@@ -73,11 +73,11 @@ if [ ! -f tmp.filled.sealer ]; then
   $TIME -v $SEALER -j $THREADS -o sealer -S $DATA/gaps.fa \
     -k34 -k33 -k32 -k31 -k30 -k29 -k28 -P 5 $READS_SPACE \
     2> sealer.stderr 1> sealer.stdout
-  mv sealer_scaffolds.fa tmp.filled.sealer
+  mv sealer_scaffold.fa tmp.filled.sealer
 fi
 
 echo -e "Evaluating"
 python3 $SCRIPTS/evaluate_fill.py $DATA/inserts.fa \
   tmp.filled.all.normal tmp.filled.all.filter \
   tmp.filled.pindel tmp.filled.mtg tmp.filled.gapfiller \
-  tmp.fileld.gapcloser tmp.filled.sealer > results
+  tmp.filled.gapcloser tmp.filled.sealer > results

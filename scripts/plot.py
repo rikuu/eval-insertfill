@@ -118,6 +118,10 @@ with open(sys.argv[1], 'r') as f:
     # GAPLENGTH MEAN STDDEV OVERLAP UNMAPPED FILTER
     d = l.rstrip().split()
 
+    if len(d) != 15:
+        print(len(d))
+        continue
+
     length = int(d[0])
     mean = int(d[1])
     stddev = int(d[2])
