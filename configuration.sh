@@ -27,6 +27,10 @@ PINDEL2VCF=~/pindel/pindel2vcf
 # https://github.com/GATB/MindTheGap
 MINDTHEGAP=~/MindTheGap/build/bin/MindTheGap
 
+GAPFILLER=~/gapfiller-1.10/GapFiller.pl
+GAPCLOSER=~/GapCloser/GapCloser
+SEALER=~/abyss-1.9.0/Sealer/abyss-sealer
+
 # GNU time
 TIME=/usr/bin/time
 
