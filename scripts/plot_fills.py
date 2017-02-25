@@ -90,12 +90,9 @@ with open(sys.argv[1], 'r') as f:
         # Skip table at end
         if ':\t' in l: continue
 
-        # LENGTH MEAN STDDEV FILTER NORMAL
+        # LENGTH FILTER NORMAL
         d = l.rstrip().split()
-
         length = int(d[0]) - 82
-        #mean = int(d[1])
-        #stddev = int(d[2])
 
         norm = lambda i, offset=0: float(d[i]) / (length + offset)
 
@@ -108,16 +105,16 @@ with open(sys.argv[1], 'r') as f:
             dds[5][9000][length].append(norm(6, 0))
             dds[6][9000][length].append(norm(6, 0))
         else:
-            dds[0][150][length].append(norm(1))
-            dds[1][150][length].append(norm(2))
-            dds[0][1500][length].append(norm(3))
-            dds[1][1500][length].append(norm(4))
-            dds[0][3000][length].append(norm(5))
-            dds[1][3000][length].append(norm(6))
+            dds[0][150][length].append(norm(1, 82))
+            dds[1][150][length].append(norm(2, 82))
+            dds[0][1500][length].append(norm(3, 82))
+            dds[1][1500][length].append(norm(4, 82))
+            dds[0][3000][length].append(norm(5, 82))
+            dds[1][3000][length].append(norm(6, 82))
 
             # NOTE: 9000 = all reads
-            dds[0][9000][length].append(norm(7))
-            dds[1][9000][length].append(norm(8))
+            dds[0][9000][length].append(norm(7, 82))
+            dds[1][9000][length].append(norm(8, 82))
 
 def avg(l):
     if len(l) == 0: return 0
@@ -140,7 +137,7 @@ def dictsum(*args):
 
     s = {}
     for k in args[0].keys():
-        s[k] = sum([arg[k] for arg in args])
+        s[k] = [v for v in arg[k] for arg in args]
     return s
 
 def plot_fills(ax, plots, steps=50, legend=True):

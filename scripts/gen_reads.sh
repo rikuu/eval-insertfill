@@ -17,7 +17,7 @@ for ((i=0;i<${#MEANS[@]};++i)); do
 
     rm -f reads"$i"*.aln reads"$i".sam
 
-    mv reads"$i"1.fq reads"$1"_pe1.fq
-    mv reads"$i"2.fq reads"$1"_pe2.fq
+    mv reads"$i"1.fq reads"$i"_pe1.fq
+    mv reads"$i"2.fq reads"$i"_pe2.fq
   fi
 done
