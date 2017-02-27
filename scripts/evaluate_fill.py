@@ -63,8 +63,10 @@ for f in sys.argv[2:]:
         sys.exit(1)
 
     for i in known.keys():
-        if not i in filled: filled[i] = ''
-        results[i] += [str(edit_distance(known[i], filled[i]))]
+        if not i in filled:
+            results[i] += [str(len(known[i]) - (k+fuz)*2)]
+        else:
+            results[i] += [str(edit_distance(known[i], filled[i]))]
 
 # Print plottable lengths
 for i in sorted(known.keys(), key = lambda key: len(known[key])):

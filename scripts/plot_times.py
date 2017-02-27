@@ -83,7 +83,7 @@ def plot(ax, plots, log=False, legend=False, ticks=True):
     if legend:
         ax.legend()
     if ticks:
-        ax.set_xticks([width/2 + i*1.7*width for i in range(len(plots))])
+        ax.set_xticks([width/1.9 + i*1.7*width for i in range(len(plots))])
         ax.set_xticklabels([plot[1] for plot in plots])
 
 times = []
@@ -96,9 +96,13 @@ with open(sys.argv[1], 'r') as f:
         times.append(hours*60 + minutes + seconds / 60)
 print(times)
 
-plots = [(times[0], 'Gap2Seq'), (times[1], 'Gap2Seq with filter'),
-    (times[2], 'Pindel'), (times[3], 'MindTheGap'), (times[4], 'GapFiller'),
-    (times[5], 'GapCloser'), (times[6], 'Sealer')]
+plots = [(times[0], 'Gap2Seq'),
+    (times[1], 'Gap2Seq with filter'),
+    (times[2], 'Pindel'),
+    (times[3], 'MindTheGap'),
+    (times[4], 'GapFiller'),
+    (times[5], 'GapCloser'),
+    (times[6], 'Sealer')]
 
 latexify(columns=1.5)
 fig, ax = plt.subplots()
@@ -108,6 +112,6 @@ ax.set_ylabel('Runtime (min)')
 plot(ax, plots)
 plt.tight_layout()
 if len(sys.argv) == 3:
-    plt.savefig(sys.argv[2])
+    plt.savefig(sys.argv[2], dpi=300)
 else:
     plt.show()

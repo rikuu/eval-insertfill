@@ -103,7 +103,7 @@ def plot_between(ax, plots, steps=50, legend=True):
         ax.plot(smooth_lengths[:-1], smooth(plot[0], avg), plot[2], label=plot[1])
 
     if legend:
-        ax.legend()
+        ax.legend(loc='best')
 
 # Read scores
 #          Recall  Precision  F-score
@@ -171,6 +171,6 @@ if sys.argv[2] == "fscore":
 plot_between(format_axes(ax), plots, sys.argv[3])
 plt.tight_layout()
 if len(sys.argv) == 5:
-    plt.savefig(sys.argv[4])
+    plt.savefig(sys.argv[4], dpi=300)
 else:
     plt.show()

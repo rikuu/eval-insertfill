@@ -16,8 +16,8 @@ cd $OUT
 READS_SPACE="$DATA/reads0_pe1.fq $DATA/reads0_pe2.fq"
 READS_COMMA="$DATA/reads0_pe1.fq,$DATA/reads0_pe2.fq"
 for ((i=1;i<${#MEANS[@]};++i)); do
-  READS_SPACE="$READS $DATA/reads"$i"_pe1.fq $DATA/reads"$i"_pe2.fq"
-  READS_COMMA="$READS,$DATA/reads"$i"_pe1.fq,$DATA/reads"$i"_pe2.fq"
+  READS_SPACE="$READS_SPACE $DATA/reads"$i"_pe1.fq $DATA/reads"$i"_pe2.fq"
+  READS_COMMA="$READS_COMMA,$DATA/reads"$i"_pe1.fq,$DATA/reads"$i"_pe2.fq"
 done
 
 if [ ! -f tmp.filled.all.normal ]; then

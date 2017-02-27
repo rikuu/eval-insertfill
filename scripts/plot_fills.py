@@ -94,27 +94,27 @@ with open(sys.argv[1], 'r') as f:
         d = l.rstrip().split()
         length = int(d[0]) - 82
 
-        norm = lambda i, offset=0: float(d[i]) / (length + offset)
+        norm = lambda i: float(d[i]) / (length + 82)
 
         if sys.argv[2] != 'indel':
-            dds[0][9000][length].append(norm(1, 82)) # offset by flank length
-            dds[1][9000][length].append(norm(2, 82))
-            dds[2][9000][length].append(norm(3, 0))
-            dds[3][9000][length].append(norm(4, 0))
-            dds[4][9000][length].append(norm(5, 0))
-            dds[5][9000][length].append(norm(6, 0))
-            dds[6][9000][length].append(norm(6, 0))
+            dds[0][9000][length].append(norm(1))
+            dds[1][9000][length].append(norm(2))
+            dds[2][9000][length].append(norm(3))
+            dds[3][9000][length].append(norm(4))
+            dds[4][9000][length].append(norm(5))
+            dds[5][9000][length].append(norm(6))
+            dds[6][9000][length].append(norm(6))
         else:
-            dds[0][150][length].append(norm(1, 82))
-            dds[1][150][length].append(norm(2, 82))
-            dds[0][1500][length].append(norm(3, 82))
-            dds[1][1500][length].append(norm(4, 82))
-            dds[0][3000][length].append(norm(5, 82))
-            dds[1][3000][length].append(norm(6, 82))
+            dds[0][150][length].append(norm(1))
+            dds[1][150][length].append(norm(2))
+            dds[0][1500][length].append(norm(3))
+            dds[1][1500][length].append(norm(4))
+            dds[0][3000][length].append(norm(5))
+            dds[1][3000][length].append(norm(6))
 
             # NOTE: 9000 = all reads
-            dds[0][9000][length].append(norm(7, 82))
-            dds[1][9000][length].append(norm(8, 82))
+            dds[0][9000][length].append(norm(7))
+            dds[1][9000][length].append(norm(8))
 
 def avg(l):
     if len(l) == 0: return 0
@@ -148,11 +148,11 @@ def plot_fills(ax, plots, steps=50, legend=True):
     between = lambda d, f, i, j: [f(d[x]) for x in lengths if x >= i and x <= j]
     smooth = lambda d, f: [f(between(d, f, i, j)) for i, j in zip([0]+smooth_lengths, smooth_lengths+[float("inf")])][1:-1]
 
-    for plot in plots:
-        ax.plot(smooth_lengths[:-1], smooth(plot[0], avg), plot[2], label=plot[1])
+    for i, plot in enumerate(plots):
+        ax.plot(smooth_lengths[:-1], smooth(plot[0], avg), plot[2], label=plot[1], color=tableau20[2*i])
 
     if legend:
-        ax.legend()
+        ax.legend(loc='best')
 
 ##### Print table
 if sys.argv[2] == 'table':
@@ -193,6 +193,6 @@ if sys.argv[2] == 'indel':
 
 plt.tight_layout()
 if len(sys.argv) == 5:
-    plt.savefig(sys.argv[4])
+    plt.savefig(sys.argv[4], dpi=300)
 else:
     plt.show()
