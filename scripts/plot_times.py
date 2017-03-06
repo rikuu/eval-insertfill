@@ -96,13 +96,13 @@ with open(sys.argv[1], 'r') as f:
         times.append(hours*60 + minutes + seconds / 60)
 print(times)
 
-plots = [(times[0], 'Gap2Seq'),
-    (times[1], 'Gap2Seq with filter'),
-    (times[2], 'Pindel'),
-    (times[3], 'MindTheGap'),
-    (times[4], 'GapFiller'),
-    (times[5], 'GapCloser'),
-    (times[6], 'Sealer')]
+plots = [(times[1], 'Gap2Seq'),
+    (times[2] + times[0], 'Gap2Seq with filter'),
+    (times[3] + times[0], 'Pindel'),
+    (times[4], 'MindTheGap'),
+    (times[5], 'GapFiller'),
+    (times[6], 'GapCloser'),
+    (times[7], 'Sealer')]
 
 latexify(columns=1.5)
 fig, ax = plt.subplots()

@@ -28,8 +28,13 @@ if [ ! -f reference.fa ]; then
   $SAMTOOLS faidx reference.fa
 
   # Index reference for read alignment
-  # $BWA index reference.fa
-  $BOWTIEBUILD --threads $THREADS reference.fa reference
+  if [ "$ALIGN" == "bwa" ]; then
+    $BWA index reference.fa
+  fi
+
+  if [ "$ALIGN" == "bowtie" ]; then
+    $BOWTIEBUILD --threads $THREADS reference.fa reference
+  fi
 
   # Extract flanks from each gap into format used by MindTheGap
   python3 $SCRIPTS/gaps2mtg.py gaps.fa > mtg.gaps.fa
@@ -41,17 +46,20 @@ for ((i=0;i<${#MEANS[@]};++i)); do
     # Map-sort-index reads to the reference genome
     echo -e "Aligning reads (${MEANS[i]})"
 
-    $BOWTIE -p $THREADS -x reference \
-        -I $((${MEANS[i]} - 4*${STDDEVS[i]})) -X $((${MEANS[i]} + 4*${STDDEVS[i]})) \
-        -1 reads"$i"_pe1.fq -2 reads"$i"_pe2.fq | \
-      $SAMTOOLS sort - | \
-      $SAMTOOLS view -bh --threads $THREADS - > aln."${MEANS[i]}".bam
+    if [ "$ALIGN" == "bowtie" ]; then
+      $TIME -v $BOWTIE -p $THREADS -x reference \
+          -I $((${MEANS[i]} - 4*${STDDEVS[i]})) -X $((${MEANS[i]} + 4*${STDDEVS[i]})) \
+          -1 reads"$i"_pe1.fq -2 reads"$i"_pe2.fq | \
+        $SAMTOOLS sort - | \
+        $SAMTOOLS view -bh --threads $THREADS - > aln."${MEANS[i]}".bam 2> align.stderr
+    fi
 
-    # $BWA mem -t $THREADS -I ${MEANS[i]},${STDDEVS[i]} reference.fa \
-    #     reads"$i"_pe1.fq reads"$i"_pe2.fq | \
-    #   $SAMTOOLS view -Shu - | \
-    #   $SAMTOOLS sort - | \
-    #   $SAMTOOLS rmdup -s - - > aln."${MEANS[i]}".bam
+    if [ "$ALIGN" == "bwa" ]; then
+      $TIME -v $BWA mem -t $THREADS -I ${MEANS[i]},${STDDEVS[i]} reference.fa \
+          reads"$i"_pe1.fq reads"$i"_pe2.fq | \
+        $SAMTOOLS sort - | \
+        $SAMTOOLS view -bh --threads $THREADS - > aln."${MEANS[i]}".bam 2> align.stderr
+    fi
 
     $SAMTOOLS index aln."${MEANS[i]}".bam
   fi

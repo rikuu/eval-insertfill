@@ -73,7 +73,7 @@ def format_axes(ax):
     ax.set_xscale('log')
     ax.set_xlabel("Gap Length")
 
-    ax.set_ylim([0.0, 1.0])
+    ax.set_ylim([0.0, 1.01])
 
     return ax
 
@@ -178,7 +178,7 @@ if sys.argv[2] == "fscore":
         (dds[11][3000], 'Filter (3000)', '--'),
         (dds[14][3000], 'Filter (3000)', '-')]
 
-plot_between(format_axes(ax), plots, sys.argv[3])
+plot_between(format_axes(ax), plots, sys.argv[3], legend=(sys.argv[2] != 'recall'))
 plt.tight_layout()
 if len(sys.argv) == 5:
     plt.savefig(sys.argv[4], dpi=300)

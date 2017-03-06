@@ -53,6 +53,9 @@ COVERAGE=30
 MEANS=(150 1500 3000)
 STDDEVS=(15 150 300)
 
+# Aligner, "bowtie" or "bwa"
+ALIGN="bowtie"
+
 # Gap simulation parameters
 GAPNUM=30
 MINGAPLEN=11
