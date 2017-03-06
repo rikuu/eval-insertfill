@@ -49,10 +49,12 @@ while read BED; do
   # Using breakpoints means END = START+82
   CONTIG=$(echo $BED | cut -f1 -d' ')
   START=$(echo $BED | cut -f2 -d' ')
-  END=$(echo $BED | cut -f3 -d' ')
+  # END=$(echo $BED | cut -f3 -d' ')
 
   GAPLENGTH=${GAPLENGTHS[I]}
   I=$(($I + 1))
+
+  END=$(($START + $GAPLENGTH))
 
   FLANKLENGTH=41
   BREAKPOINT=$(($START + $FLANKLENGTH))
@@ -67,8 +69,8 @@ while read BED; do
     # GapFiller-style filtering
     if [ ! -f gapfiller."$GAPLENGTH"."${MEANS[i]}".fa ]; then
       python3 $SCRIPTS/gapfiller_filter.py $DATA/aln."${MEANS[i]}".bam \
-        $CONTIG $START $END \
-        $((${MEANS[i]} / 4)) > gapfiller."$GAPLENGTH"."${MEANS[i]}".fa
+        $CONTIG $START $END $((${MEANS[i]} / 4)) \
+        > gapfiller."$GAPLENGTH"."${MEANS[i]}".fa
     fi
 
     # Filter reads
@@ -76,8 +78,15 @@ while read BED; do
       $EXTRACT -bam $DATA/aln."${MEANS[i]}".bam \
         -read-length $READLENGTH -mean ${MEANS[i]} -std-dev ${STDDEVS[i]} \
         -scaffold $CONTIG -breakpoint $BREAKPOINT -flank-length $FLANKLENGTH \
-        -gap-length $GAPLENGTH -unmapped $THRESHOLD \
-        -reads filter."$GAPLENGTH"."${MEANS[i]}".fa
+        -gap-length $GAPLENGTH -reads filter."$GAPLENGTH"."${MEANS[i]}".fa
+    fi
+
+    if [ ! -f filter2."$GAPLENGTH"."${MEANS[i]}".fa ]; then
+      cp filter."$GAPLENGTH"."${MEANS[i]}".fa filter2."$GAPLENGTH"."${MEANS[i]}".fa
+      FILTERED=$(grep '^[^>;]' filter."$GAPLENGTH"."${MEANS[i]}".fa | wc -c)
+      if [ $(echo "$FILTERED / $GAPLENGTH" | bc) < $THRESHOLD ]; then
+        cat unmapped."${MEANS[i]}".fa >> filter2."$GAPLENGTH"."${MEANS[i]}".fa
+      fi
     fi
 
     # Evaluate the schemes
@@ -87,7 +96,8 @@ while read BED; do
       unmapped."${MEANS[i]}".fa \
       overlap."$GAPLENGTH"."${MEANS[i]}".fa \
       gapfiller."$GAPLENGTH"."${MEANS[i]}".fa \
-      filter."$GAPLENGTH"."${MEANS[i]}".fa)
+      filter."$GAPLENGTH"."${MEANS[i]}".fa \
+      filter2."$GAPLENGTH"."${MEANS[i]}".fa)
 
     echo $GAPLENGTH ${MEANS[i]} ${STDDEVS[i]} $RESULTS >> results
   done

@@ -30,7 +30,7 @@ with open(sys.argv[2], 'r') as f:
         # Parse VCF fields
         insert = fields[4][1:]
         comment, start, end = fields[0], int(fields[1]) - 1, \
-            int(fields[1]) + len(insert) - 1
+            (int(fields[1]) - 1) + (len(insert) - 1)
 
         # Extract kmers from reference seqeuences
         left = reference[comment][start:min(start+k+fuz, len(reference[comment]))]

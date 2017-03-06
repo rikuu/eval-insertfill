@@ -27,20 +27,20 @@ for predictor in sys.argv[3:]:
     predicted_false = all_ids - predicted_ids
 
     # true positives, reads correctly filtered in
-    tp = float(len(predicted_ids.intersection(known_ids)))
+    tp = len(predicted_ids.intersection(known_ids))
 
     if tp == 0.:
         scores += '0 0 0 '
         continue
 
     # false positives, reads incorrectly filtered in
-    fp = float(len(predicted_ids - known_ids))
+    fp = len(predicted_ids - known_ids)
 
     # true negatives, reads correcly filtered out
-    tn = float(len(predicted_false.intersection(known_false)))
+    tn = len(predicted_false.intersection(known_false))
 
     # false negatives, reads incorrectly filtered out
-    fn = float(len(predicted_false - known_false))
+    fn = len(predicted_false - known_false)
 
     # Recall, Precision, F-score
     scores += '%.18f %.18f %.18f ' % \

@@ -281,8 +281,8 @@ if __name__ == '__main__':
     parser.add_argument('-g', '--gaps', type=argparse.FileType('r'))
 
     # 3. Generate gaps and bed from VCF
-    parser.add_argument('-v', '--vcf', type=argparse.FileType('r'))
-    parser.add_argument('-r', '--reference', type=argparse.FileType('r'))
+    parser.add_argument('-v', '--vcf', type=argparse.FileType('r'), help="EXPERIMENTAL")
+    parser.add_argument('-r', '--reference', type=argparse.FileType('r'), help="EXPERIMENTAL")
 
     args = vars(parser.parse_args())
 

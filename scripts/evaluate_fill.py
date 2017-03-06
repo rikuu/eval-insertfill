@@ -64,7 +64,7 @@ for f in sys.argv[2:]:
 
     for i in known.keys():
         if not i in filled:
-            results[i] += [str(len(known[i]) - (k+fuz)*2)]
+            results[i] += [str(len(known[i])]
         else:
             results[i] += [str(edit_distance(known[i], filled[i]))]
 
