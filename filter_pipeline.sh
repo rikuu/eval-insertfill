@@ -16,13 +16,14 @@ cd $OUT
 for ((i=0;i<${#MEANS[@]};++i)); do
   # Extract all reads
   if [ ! -f aln."${MEANS[i]}".fa ]; then
-    $SAMTOOLS fasta $DATA/aln."${MEANS[i]}".bam > aln."${MEANS[i]}".fa
+    $SAMTOOLS fasta $DATA/aln."${MEANS[i]}".bam | \
+      grep '^>' > aln."${MEANS[i]}".fa
   fi
 
   # Extract all unmapped reads
   if [ ! -f unmapped."${MEANS[i]}".fa ]; then
-    $SAMTOOLS view -f4 -u $DATA/aln."${MEANS[i]}".bam | \
-      $SAMTOOLS fasta - > unmapped."${MEANS[i]}".fa
+    $SAMTOOLS view -f4 -u $DATA/aln."${MEANS[i]}".bam | $SAMTOOLS fasta - | \
+      grep '^>' > unmapped."${MEANS[i]}".fa
   fi
 done
 
@@ -39,7 +40,7 @@ while read BED; do
     # Extract all known gap-covering reads
     if [ ! -f known."$GAPLENGTH"."${MEANS[i]}".fa ]; then
       $SAMTOOLS view -u $DATA/known_aln"$i".bam "$CONTIG:$START-$END" | \
-        $SAMTOOLS fasta - > known."$GAPLENGTH"."${MEANS[i]}".fa
+        $SAMTOOLS fasta - | grep '^>' > known."$GAPLENGTH"."${MEANS[i]}".fa
     fi
   done
 done < $DATA/gaps.bed
@@ -84,7 +85,7 @@ while read BED; do
     if [ ! -f filter2."$GAPLENGTH"."${MEANS[i]}".fa ]; then
       cp filter."$GAPLENGTH"."${MEANS[i]}".fa filter2."$GAPLENGTH"."${MEANS[i]}".fa
       FILTERED=$(grep '^[^>;]' filter."$GAPLENGTH"."${MEANS[i]}".fa | wc -c)
-      if [ $(echo "$FILTERED / $GAPLENGTH" | bc) < $THRESHOLD ]; then
+      if (( $(echo "($FILTERED / $GAPLENGTH) < $THRESHOLD" | bc -l) )); then
         cat unmapped."${MEANS[i]}".fa >> filter2."$GAPLENGTH"."${MEANS[i]}".fa
       fi
     fi
