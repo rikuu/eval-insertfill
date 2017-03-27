@@ -1,5 +1,9 @@
 import sys
 
+if len(sys.argv) != 2:
+    print('Usage: %s <gff>' % sys.argv[0])
+    sys.exit(1)
+
 with open(sys.argv[1], 'r') as f:
     for line in f:
         if line[0] == '#': continue

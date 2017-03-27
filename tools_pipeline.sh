@@ -81,7 +81,9 @@ if [ ! -f tmp.filled.sealer ]; then
 fi
 
 # Gather wall clock times for all tools
-tail -n19 $DATA/align.stderr | head -n1 | cut -c47- > times
+tail -n19 $DATA/align.150.stderr | head -n1 | cut -c47- > times
+tail -n19 $DATA/align.1500.stderr | head -n1 | cut -c47- >> times
+tail -n19 $DATA/align.3000.stderr | head -n1 | cut -c47- >> times
 tail -n19 gap2seq.stderr | head -n1 | cut -c47- >> times
 tail -n19 gap2seq.filter.stderr | head -n1 | cut -c47- >> times
 tail -n19 pindel.stderr | head -n1 | cut -c47- >> times

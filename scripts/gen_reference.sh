@@ -49,16 +49,16 @@ for ((i=0;i<${#MEANS[@]};++i)); do
     if [ "$ALIGN" == "bowtie" ]; then
       $TIME -v $BOWTIE -p $THREADS -x reference \
           -I $((${MEANS[i]} - 4*${STDDEVS[i]})) -X $((${MEANS[i]} + 4*${STDDEVS[i]})) \
-          -1 reads"$i"_pe1.fq -2 reads"$i"_pe2.fq | \
+          -1 reads"$i"_pe1.fq -2 reads"$i"_pe2.fq 2> align."${MEANS[i]}".stderr | \
         $SAMTOOLS sort - | \
-        $SAMTOOLS view -bh --threads $THREADS - > aln."${MEANS[i]}".bam 2> align.stderr
+        $SAMTOOLS view -bh --threads $THREADS - > aln."${MEANS[i]}".bam
     fi
 
     if [ "$ALIGN" == "bwa" ]; then
       $TIME -v $BWA mem -t $THREADS -I ${MEANS[i]},${STDDEVS[i]} reference.fa \
-          reads"$i"_pe1.fq reads"$i"_pe2.fq | \
+          reads"$i"_pe1.fq reads"$i"_pe2.fq 2> align."${MEANS[i]}".stderr | \
         $SAMTOOLS sort - | \
-        $SAMTOOLS view -bh --threads $THREADS - > aln."${MEANS[i]}".bam 2> align.stderr
+        $SAMTOOLS view -bh --threads $THREADS - > aln."${MEANS[i]}".bam
     fi
 
     $SAMTOOLS index aln."${MEANS[i]}".bam

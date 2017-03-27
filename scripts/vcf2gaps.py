@@ -4,13 +4,18 @@ import sys
 fuz = 10
 k = 31
 
-if len(sys.argv) != 3:
-    print('Usage:', sys.argv[0], '<reference.fa> <variants.vcf>')
+if len(sys.argv) not in [3, 4, 5]:
+    print('Usage:', sys.argv[0], '<reference.fa> <variants.vcf> [gaps.fa] [filled.fa]')
     sys.exit(1)
+
+REFERENCE = sys.argv[1]
+VARIANTS = sys.argv[2]
+GAPS = sys.argv[3] if len(sys.argv) >= 4 else None
+FILLED = sys.argv[4] if len(sys.argv) == 5 else None
 
 # Parse chromosomes from the reference into a dictionary
 reference = {}
-with open(sys.argv[1], 'r') as f:
+with open(REFERENCE, 'r') as f:
     comment, seq = '', ''
     for line in f:
         if line[0] == '>':
@@ -22,7 +27,10 @@ with open(sys.argv[1], 'r') as f:
             seq += line.rstrip()
     reference[comment] = seq
 
-with open(sys.argv[2], 'r') as f:
+gaps = open(GAPS, 'w') if GAPS != None else None
+filled = open(FILLED, 'w') if FILLED != None else None
+
+with open(VARIANTS, 'r') as f:
     for line in f:
         if line[0] == '#': continue
         fields = line.rstrip().split('\t')
@@ -32,9 +40,25 @@ with open(sys.argv[2], 'r') as f:
         comment, start, end = fields[0], int(fields[1]) - 1, \
             (int(fields[1]) - 1) + (len(insert) - 1)
 
+        # Validated inserts and reference genome use different names?
+        if comment[:3] == 'chr': comment = comment[3:]
+        comment = 'CHROMOSOME_' + comment
+
         # Extract kmers from reference seqeuences
-        left = reference[comment][start:min(start+k+fuz, len(reference[comment]))]
-        right = reference[comment][max(end-(k+fuz), 0):end]
+        left_end = min(start+k+fuz, len(reference[comment]))
+        right_start = max(end-(k+fuz), 0)
+        left = reference[comment][start:left_end]
+        right = reference[comment][right_start:end]
         gap = left + 'N' * len(insert) + right
 
-        print('>%s:%i-%i\n%s' % (comment, start, end, gap))
+        if gaps == None:
+            print('>%s:%i-%i\n%s' % (comment, start, end, gap))
+        else:
+            gaps.write('>%s:%i-%i\n%s\n' % (comment, start, end, gap))
+
+        if filled != None:
+            fill = left + insert + right
+            filled.write('>%s:%i-%i\n%s\n' % (comment, start, end, fill))
+
+if gaps != None: gaps.close()
+if filled != None: filled.close()

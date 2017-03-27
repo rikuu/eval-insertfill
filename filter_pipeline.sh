@@ -55,6 +55,8 @@ while read BED; do
   GAPLENGTH=${GAPLENGTHS[I]}
   I=$(($I + 1))
 
+  echo -e "$I / ${#GAPLENGTHS[@]}"
+
   END=$(($START + $GAPLENGTH))
 
   FLANKLENGTH=41

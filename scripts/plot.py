@@ -94,16 +94,15 @@ def median(l):
 
 def plot_between(ax, plots, steps=50, legend=True):
     lengths = sorted(plots[0][0].keys())
-    smooth_lengths = np.logspace(log(min(lengths), 10), log(max(lengths), 10), steps).tolist()
+    log_lengths = np.logspace(log(min(lengths), 10), log(max(lengths), 10), steps).tolist()
+    smooth_lengths = [(i+j) / 2 for i, j in zip(log_lengths[:-1], log_lengths[1:])]
 
-    between = lambda d, f, i, j: [f(d[x]) for x in lengths if x >= i and x <= j]
-    smooth = lambda d, f: [f(between(d, f, i, j)) for i, j in zip([0]+smooth_lengths, smooth_lengths+[float("inf")])][1:-1]
+    between = lambda d, f, i, j: [f(d[x]) for x in lengths if x >= i and x < j]
+    smooth = lambda d, f: [f(between(d, f, i, j)) for i, j in zip(log_lengths[:-1], log_lengths[1:])]
 
-    for plot in plots:
-        ax.plot(smooth_lengths[:-1], smooth(plot[0], avg), plot[2], label=plot[1])
-
+    handles = [ax.plot(smooth_lengths, smooth(plot[0], avg), plot[2], label=plot[1], color=tableau20[plot[3]*2]) for plot in plots]
     if legend:
-        ax.legend(loc='best')
+        ax.legend(handles=[handle[0] for i, handle in enumerate(handles) if plots[i][4]], loc='best')
 
 # Read scores
 #          Recall  Precision  F-score
@@ -119,7 +118,7 @@ with open(sys.argv[1], 'r') as f:
     # GAPLENGTH MEAN STDDEV OVERLAP UNMAPPED FILTER
     d = l.rstrip().split()
 
-    if len(d) != 15:
+    if len(d) != 18:
         print(len(d))
         continue
 
@@ -146,37 +145,37 @@ ax = fig.add_subplot(111)
 plots = []
 if sys.argv[2] == "recall":
     ax.set_ylabel("Recall")
-    plots = [(dictsum(dds[0][150], dds[0][1500], dds[0][3000]), 'Unmapped', ':'),
-        #(dictsum(dds[3][150], dds[3][1500], dds[3][3000]), 'Overlap', '--'),
-        (dictsum(dds[6][150], dds[6][1500], dds[6][3000]), 'GapFiller', '-'),
-        (dds[9][150], 'Filter (150)', '--'),
-        (dds[12][150], 'Filter (150)', '-'),
-        (dds[9][1500], 'Filter (1500)', '--'),
-        (dds[12][1500], 'Filter (1500)', '-'),
-        (dds[9][3000], 'Filter (3000)', '--'),
-        (dds[12][3000], 'Filter (3000)', '-')]
+    plots = [(dictsum(dds[0][150], dds[0][1500], dds[0][3000]), 'Unmapped', ':', 0, True),
+        #(dictsum(dds[3][150], dds[3][1500], dds[3][3000]), 'Overlap', '--', 1, True),
+        (dictsum(dds[6][150], dds[6][1500], dds[6][3000]), 'GapFiller', '-', 2, True),
+        (dds[9][150], 'Filter (150)', '--', 3, False),
+        (dds[12][150], 'Filter (150)', '-', 3, True),
+        (dds[9][1500], 'Filter (1500)', '--', 4, False),
+        (dds[12][1500], 'Filter (1500)', '-', 4, True),
+        (dds[9][3000], 'Filter (3000)', '--', 5, False),
+        (dds[12][3000], 'Filter (3000)', '-', 5, True)]
 if sys.argv[2] == "precision":
     ax.set_ylabel("Precision")
-    plots = [(dictsum(dds[1][150], dds[1][1500], dds[1][3000]), 'Unmapped', ':'),
-        #(dictsum(dds[4][150], dds[4][1500], dds[4][3000]), 'Overlap', '--'),
-        (dictsum(dds[7][150], dds[7][1500], dds[7][3000]), 'GapFiller', '-'),
-        (dds[10][150], 'Filter (150)', '--'),
-        (dds[13][150], 'Filter (150)', '-'),
-        (dds[10][1500], 'Filter (1500)', '--'),
-        (dds[13][1500], 'Filter (1500)', '-'),
-        (dds[10][3000], 'Filter (3000)', '--'),
-        (dds[13][3000], 'Filter (3000)', '-')]
+    plots = [(dictsum(dds[1][150], dds[1][1500], dds[1][3000]), 'Unmapped', ':', 0, True),
+        #(dictsum(dds[4][150], dds[4][1500], dds[4][3000]), 'Overlap', '--', 1, True),
+        (dictsum(dds[7][150], dds[7][1500], dds[7][3000]), 'GapFiller', '-', 2, True),
+        (dds[10][150], 'Filter (150)', '--', 3, False),
+        (dds[13][150], 'Filter (150)', '-', 3, True),
+        (dds[10][1500], 'Filter (1500)', '--', 4, False),
+        (dds[13][1500], 'Filter (1500)', '-', 4, True),
+        (dds[10][3000], 'Filter (3000)', '--', 5, False),
+        (dds[13][3000], 'Filter (3000)', '-', 5, True)]
 if sys.argv[2] == "fscore":
     ax.set_ylabel("F-score")
-    plots = [(dictsum(dds[2][150], dds[2][1500], dds[2][3000]), 'Unmapped', ':'),
-        #(dictsum(dds[5][150], dds[5][1500], dds[5][3000]), 'Overlap', '--'),
-        (dictsum(dds[8][150], dds[8][1500], dds[8][3000]), 'GapFiller', '-'),
-        (dds[11][150], 'Filter (150)', '--'),
-        (dds[14][150], 'Filter (150)', '-'),
-        (dds[11][1500], 'Filter (1500)', '--'),
-        (dds[14][1500], 'Filter (1500)', '-'),
-        (dds[11][3000], 'Filter (3000)', '--'),
-        (dds[14][3000], 'Filter (3000)', '-')]
+    plots = [(dictsum(dds[2][150], dds[2][1500], dds[2][3000]), 'Unmapped', ':', 0, True),
+        #(dictsum(dds[5][150], dds[5][1500], dds[5][3000]), 'Overlap', '--', 1, True),
+        (dictsum(dds[8][150], dds[8][1500], dds[8][3000]), 'GapFiller', '-', 2, True),
+        (dds[11][150], 'Filter (150)', '--', 3, False),
+        (dds[14][150], 'Filter (150)', '-', 3, True),
+        (dds[11][1500], 'Filter (1500)', '--', 4, False),
+        (dds[14][1500], 'Filter (1500)', '-', 4, True),
+        (dds[11][3000], 'Filter (3000)', '--', 5, False),
+        (dds[14][3000], 'Filter (3000)', '-', 5, True)]
 
 plot_between(format_axes(ax), plots, sys.argv[3], legend=(sys.argv[2] != 'recall'))
 plt.tight_layout()

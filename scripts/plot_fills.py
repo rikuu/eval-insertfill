@@ -79,32 +79,19 @@ def format_axes(ax):
 
     return ax
 
-# Read scores
-#        similarity
-# normal    0
-# filter    1
-dds = [defaultdict(lambda: defaultdict(list)) for i in range(7)]
+dds = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
 
 with open(sys.argv[1], 'r') as f:
     for l in f:
-        # Skip table at end
-        if ':\t' in l: continue
-
-        # LENGTH FILTER NORMAL
         d = l.rstrip().split()
         length = int(d[0]) - 82
 
-        norm = lambda i: float(d[i]) / (length + 82)
+        # TODO: Select from multiple results somehow?
+        destar = lambda i: i[:-1] if '*' in i else i
+        delist = lambda i: i.split(',')[0] if ',' in i else i
+        norm = lambda i: float(destar(delist(d[i]))) / (length + 82)
 
-        if sys.argv[2] != 'indel':
-            dds[0][9000][length].append(norm(1))
-            dds[1][9000][length].append(norm(2))
-            dds[2][9000][length].append(norm(3))
-            dds[3][9000][length].append(norm(4))
-            dds[4][9000][length].append(norm(5))
-            dds[5][9000][length].append(norm(6))
-            dds[6][9000][length].append(norm(6))
-        else:
+        if sys.argv[2] == 'indel':
             dds[0][150][length].append(norm(1))
             dds[1][150][length].append(norm(2))
             dds[0][1500][length].append(norm(3))
@@ -115,9 +102,11 @@ with open(sys.argv[1], 'r') as f:
             # NOTE: 9000 = all reads
             dds[0][9000][length].append(norm(7))
             dds[1][9000][length].append(norm(8))
-
+        else:
+            for i in range(len(d)-1):
+                dds[i][9000][length].append(norm(i+1))
 def avg(l):
-    if len(l) == 0: return 0
+    assert(len(l) != 0)
     return sum(l) / len(l)
 
 def median(l):
@@ -142,14 +131,14 @@ def dictsum(*args):
 
 def plot_fills(ax, plots, steps=50, legend=True):
     lengths = sorted(plots[0][0].keys())
-    print(min(lengths), max(lengths))
-    smooth_lengths = np.logspace(log(min(lengths), 10), log(max(lengths), 10), steps).tolist()
+    log_lengths = np.logspace(log(min(lengths), 10), log(max(lengths), 10), steps).tolist()
+    smooth_lengths = [(i+j) / 2 for i, j in zip(log_lengths[:-1], log_lengths[1:])]
 
-    between = lambda d, f, i, j: [f(d[x]) for x in lengths if x >= i and x <= j]
-    smooth = lambda d, f: [f(between(d, f, i, j)) for i, j in zip([0]+smooth_lengths, smooth_lengths+[float("inf")])][1:-1]
+    between = lambda d, f, i, j: [f(d[x]) for x in lengths if x >= i and x < j]
+    smooth = lambda d, f: [f(between(d, f, i, j)) for i, j in zip(log_lengths[:-1], log_lengths[1:])]
 
     for i, plot in enumerate(plots):
-        ax.plot(smooth_lengths[:-1], smooth(plot[0], avg), plot[2], label=plot[1], color=tableau20[2*i])
+        ax.plot(smooth_lengths, smooth(plot[0], avg), plot[2], label=plot[1], color=tableau20[2*i])
 
     if legend:
         ax.legend(loc='best')
@@ -171,26 +160,29 @@ if sys.argv[2] == 'table':
 latexify(rows=1.3, columns=1.5)
 fig = plt.figure()
 ax = fig.add_subplot(111)
+plots = []
 
-##### Plot tools
 if sys.argv[2] == 'tools':
-    plots = [(dds[0][9000], 'Gap2Seq', '--'),
-        (dds[1][9000], 'Gap2Seq with filtering', '-'),
+    plots = [(dds[0][9000], 'Gap2Seq', '-'),
+        (dds[1][9000], 'Gap2Seq + filter', '-'),
         (dds[2][9000], 'Pindel', '-'),
         (dds[3][9000], 'MindTheGap', '-'),
         (dds[4][9000], 'GapFiller', '-'),
         (dds[5][9000], 'GapCloser', '-'),
         (dds[6][9000], 'Sealer', '-')]
-    plot_fills(format_axes(ax), plots, sys.argv[3])
-
-##### Plot fills
-if sys.argv[2] == 'indel':
+elif sys.argv[2] == 'indel':
     plots = [(dictsum(dds[0][150], dds[0][1500], dds[0][3000], dds[0][9000]), 'All reads', '--'),
         (dds[1][150], 'Filter (150)', '-'),
         (dds[1][1500], 'Filter (1500)', '-'),
         (dds[1][3000], 'Filter (3000)', '-')]
-    plot_fills(format_axes(ax), plots, sys.argv[3])
+elif sys.argv[2] == 'validated':
+    plots = [(dds[0][9000], 'Gap2Seq', '-'),
+        (dds[1][9000], 'MindTheGap', '-'),
+        (dds[2][9000], 'GapFiller', '-'),
+        (dds[3][9000], 'Sealer', '-'),
+        (dds[4][9000], 'Pindel', '-')]
 
+plot_fills(format_axes(ax), plots, sys.argv[3])
 plt.tight_layout()
 if len(sys.argv) == 5:
     plt.savefig(sys.argv[4], dpi=300)

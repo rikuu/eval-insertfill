@@ -1,5 +1,6 @@
 import sys, re
 import numpy as np
+from collections import defaultdict
 
 DEBUG = False
 
@@ -29,32 +30,24 @@ def edit_distance(a, b):
 
 # Parses a fasta file of gaps into a dictionary
 def parse(file):
-    lines = {}
-    identifier, buf = '', ''
-
+    lines, identifier, buf = defaultdict(list), '', ''
     with open(file, 'r') as f:
         for line in f:
+            line = line.rstrip()
             if line[0] != '>':
-                buf += line.rstrip().upper()
+                buf += line.upper()
             else:
                 if len(buf) != 0:
-                    lines[identifier] = buf
+                    lines[identifier].append(buf)
                     buf = ''
-
-                # Identify insertion sites by breakpoint positions
-                # NOTE: This actually uses start position of left flank
-                # TODO: Fix that.
-                identifier = int(re.split(':|-', line.rstrip()[1:])[1])
-
-    lines[identifier] = buf
-
+                identifier = line[1:]
+    lines[identifier].append(buf)
     return lines
 
 known = parse(sys.argv[1])
+for v in known.values(): assert len(v) == 1
 
-results = {}
-for i in known.keys(): results[i] = []
-
+results = defaultdict(list)
 for f in sys.argv[2:]:
     filled = parse(f)
 
@@ -64,34 +57,10 @@ for f in sys.argv[2:]:
 
     for i in known.keys():
         if not i in filled:
-            results[i] += [str(len(known[i])]
+            results[i].append(str(len(known[i][0])) + '*')
         else:
-            results[i] += [str(edit_distance(known[i], filled[i]))]
+            results[i].append(','.join([str(edit_distance(known[i][0], fill)) for fill in filled[i]]))
 
 # Print plottable lengths
-for i in sorted(known.keys(), key = lambda key: len(known[key])):
-    print(len(known[i]), ' '.join(results[i]))
-
-def sumres(down=0, up=float("inf")):
-    sums = [0] * len(sys.argv[1:])
-    for i in known.keys():
-        if down > len(known[i]) or len(known[i]) > up: continue
-        sums[0] += len(known[i])
-        for j in range(len(results[i])):
-            sums[j+1] += int(results[i][j])
-    return sums
-
-def normalized(sums):
-    if sums[0] == 0: return [0] * (len(sums)-1)
-    return [round(i / sums[0], 3) for i in sums[1:]]
-
-# Print summary of gaps based on length
-print('-:\t', sumres())
-print('0-100:\t', sumres(0, 100))
-print('100-1000:\t', sumres(100,1000))
-print('1000-:\t', sumres(1000))
-
-print('-:\t', normalized(sumres()))
-print('0-100:\t', normalized(sumres(0, 100)))
-print('100-1000:\t', normalized(sumres(100, 1000)))
-print('1000-:\t', normalized(sumres(1000)))
+for i in sorted(known.keys(), key = lambda key: len(known[key][0])):
+    print(len(known[i][0]), ' '.join(results[i]))

@@ -78,10 +78,13 @@ def format_axes(ax, log=False):
 def plot(ax, plots, log=False, legend=False, ticks=True):
     width = 0.15
     for i, plot in enumerate(plots):
+        if plot[2] != None:
+            ax.bar(i*width*1.7, plot[0]+plot[2], width, color=tableau20[1], log=log, label='Bowtie2')
         ax.bar(i*width*1.7, plot[0], width, color=tableau20[2*i], log=log, label=plot[1])
 
     if legend:
         ax.legend()
+
     if ticks:
         ax.set_xticks([width/1.9 + i*1.7*width for i in range(len(plots))])
         ax.set_xticklabels([plot[1] for plot in plots])
@@ -96,13 +99,13 @@ with open(sys.argv[1], 'r') as f:
         times.append(hours*60 + minutes + seconds / 60)
 print(times)
 
-plots = [(times[1], 'Gap2Seq'),
-    (times[2] + times[0], 'Gap2Seq with filter'),
-    (times[3] + times[0], 'Pindel'),
-    (times[4], 'MindTheGap'),
-    (times[5], 'GapFiller'),
-    (times[6], 'GapCloser'),
-    (times[7], 'Sealer')]
+plots = [(times[3], 'Gap2Seq', None),
+    (times[4], 'Gap2Seq + filter', times[0]+times[1]+times[2]),
+    (times[5], 'Pindel', times[0]+times[1]+times[2]),
+    (times[6], 'MindTheGap', None),
+    (times[7], 'GapFiller', None),
+    (times[8], 'GapCloser', None),
+    (times[9], 'Sealer', None)]
 
 latexify(columns=1.5)
 fig, ax = plt.subplots()

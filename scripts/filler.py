@@ -111,6 +111,7 @@ def fill_gap(libraries, gap, k, fuz, solid, threshold, max_mem):
     else:
         fill = gap.left + ('N' * gap.length) + gap.right
 
+    # TODO: Save gap filling subgraph statistics
     # log = log[143:-2]
 
     # Cleanup reads
