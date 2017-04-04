@@ -5,6 +5,7 @@
 
 import os, sys
 import subprocess, multiprocessing
+import datetime
 
 isexecutable = lambda f: os.path.isfile(f) and os.access(f, os.X_OK)
 def find_executable(path_hint, name):
@@ -57,16 +58,28 @@ class Gap:
             '-length', str(self.length)]
 
 # Callback function to gather statistics on gaps
-# TODO: Estimate time to completion
-filled_gaps, num_of_gaps = [], 1
+successful_gaps, filled_gaps, num_of_gaps = 0, 0, 1
+start_time = datetime.datetime.now()
 print_lock = multiprocessing.Lock()
+filled_gaps_file = None
 def count_filled(result):
-    global filled_gaps, num_of_gaps
-    filled_gaps.append(result)
+    assert(filled_gaps_file != None)
+    global successful_gaps, filled_gaps, num_of_gaps
+    comment, fill, success = result
     with print_lock:
-        print('Progress %.3f%% [%i / %i]' % \
-            (100*(len(filled_gaps) / num_of_gaps), len(filled_gaps), num_of_gaps),
+        filled_gaps += 1
+        if success:
+            successful_gaps += 1
+
+        delta = (datetime.datetime.now() - start_time).total_seconds()
+        eta = (filled_gaps / delta) * (num_of_gaps - filled_gaps)
+        eta_string = str(datetime.timedelta(seconds=eta))
+
+        print('Progress %.3f%% [%i / %i] %s left' % \
+            (100*(filled_gaps / num_of_gaps), filled_gaps, num_of_gaps, eta_string),
             end='\r')
+
+        filled_gaps_file.write(comment + '\n' + fill + '\n')
 
 # Runs all the read filtering and gap filling for a single gap
 def fill_gap(libraries, gap, k, fuz, solid, threshold, max_mem):
@@ -164,15 +177,6 @@ def start_fillers(bed, gaps, libraries, pool=None,
         seq += gap
 
     start_filler(seq, gap_id)
-
-def join_filled(out='filled.fasta'):
-    num_success = 0
-    with open(out, 'w') as f:
-        for (filled, comment, fill) in filled_gaps:
-            if filled:
-                num_success += 1
-            f.write(comment + '\n' + fill + '\n')
-    return num_success
 
 # Run GapCutter, i.e. cut scaffolds into contigs and gaps
 def cut_gaps(scaffolds, contigs_file = 'tmp.contigs', gap_file = 'tmp.gaps',
@@ -322,12 +326,20 @@ if __name__ == '__main__':
     # parallel instances with 1 thread, we need to pre-divide
     max_mem = args['max_mem'] / args['threads']
 
+    # Open output file
+    global filled_gaps_file
+    if scaffolds_cut:
+        filled_gaps_file = open('tmp.filled', 'w')
+    else:
+        filled_gaps_file = open(args['out'], 'w')
+
     print('Starting gapfillers')
     start_fillers(args['bed'], args['gaps'], libraries, pool=pool,
         k=args['k'], fuz=args['fuz'], solid=args['solid'],
         threshold=args['unmapped_threshold'],
         max_mem=max_mem)
 
+    filled_gaps_file.close()
     args['bed'].close()
     args['gaps'].close()
 
@@ -335,13 +347,8 @@ if __name__ == '__main__':
         pool.close()
         pool.join()
 
-    num_success = 0
     if scaffolds_cut:
         print('Merging filled gaps and contigs')
-        num_success = join_filled('tmp.filled')
         merge_gaps('tmp.filled', args['out'])
-    else:
-        print('Joining filled sequences')
-        num_success = join_filled(args['out'])
 
-    print('Filled %i out of %i gaps' % (num_success, num_of_gaps))
+    print('Filled %i out of %i gaps' % (successful_gaps, num_of_gaps))
