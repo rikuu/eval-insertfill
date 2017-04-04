@@ -8,27 +8,26 @@ import subprocess, multiprocessing
 import datetime
 
 isexecutable = lambda f: os.path.isfile(f) and os.access(f, os.X_OK)
-def find_executable(path_hint, name):
-    path = os.path.join(path_hint, name)
-    if isexecutable(path):
-        return path
+def find_executable(path_hints, name):
+    for path_hint in path_hints:
+        path = os.path.join(path_hint, name)
+        if isexecutable(path):
+            return path
 
     print('%s not found' % name, file=sys.stderr)
     sys.exit(1)
 
 # Find required tools
-gapmerger = find_executable('../Gap2Seq/build', 'GapMerger')
-gapcutter = find_executable('../Gap2Seq/build', 'GapCutter')
-gap2seq = find_executable('../Gap2Seq/build', 'Gap2Seq')
-extract = find_executable('../extract/build', 'extract')
+gapmerger = find_executable(['../../Gap2Seq/build', '../Gap2Seq/build'], 'GapMerger')
+gapcutter = find_executable(['../../Gap2Seq/build', '../Gap2Seq/build'], 'GapCutter')
+gap2seq = find_executable(['../../Gap2Seq/build', '../Gap2Seq/build'], 'Gap2Seq')
+extract = find_executable(['../../Gap2Seq/build', '../Gap2Seq/build'], 'extract')
 
 # An object for holding all the data for a library of short reads
 class Library:
-    def __init__(self, bam, read_length, mean_insert_size, std_dev):
-        self.bam = bam
-        self.len = read_length
-        self.mu = mean_insert_size
-        self.sd = std_dev
+    def __init__(self, bam, read_length, mean_insert_size, std_dev, threshold):
+        self.bam, self.len, self.mu,  self.sd, self.threshold = \
+            bam, read_length, mean_insert_size, std_dev, threshold
 
         # Assert bam-file is indexed
         if not os.path.isfile(bam + '.bai'):
@@ -39,7 +38,8 @@ class Library:
         return ['-bam', self.bam,
             '-read-length', str(self.len),
             '-mean', str(self.mu),
-            '-std-dev', str(self.sd)]
+            '-std-dev', str(self.sd),
+            '-unmapped', str(self.threshold)]
 
 class Gap:
     def __init__(self, scaffold, position, length, left, right, comment, id):
@@ -82,7 +82,7 @@ def count_filled(result):
         filled_gaps_file.write(comment + '\n' + fill + '\n')
 
 # Runs all the read filtering and gap filling for a single gap
-def fill_gap(libraries, gap, k, fuz, solid, threshold, max_mem):
+def fill_gap(libraries, gap, k, fuz, solid, max_mem):
     # Cleanup, just to be sure
     reads_base = 'tmp.reads.' + gap.id + '.'
     subprocess.check_call(['rm', '-f', reads_base + '*'])
@@ -92,7 +92,6 @@ def fill_gap(libraries, gap, k, fuz, solid, threshold, max_mem):
     with open('tmp.extract.' + gap.id + '.log', 'w') as f:
         for i, lib in enumerate(libraries):
             subprocess.check_call([extract,
-                '-unmapped', str(threshold),
                 '-flank-length', str(k + fuz),
                 '-reads', reads_base + str(i)] + gap.data() + lib.data(),
                 stderr=f, stdout=f)
@@ -156,14 +155,13 @@ def parse_gap(bed, gap, id):
     return Gap(scaffold, position, length, left, right, comment, id)
 
 # Starts multiple gapfilling processes in parallel
-def start_fillers(bed, gaps, libraries, pool=None,
-        k=31, fuz=10, solid=2, threshold=25, max_mem=20):
+def start_fillers(bed, gaps, libraries, pool=None, k=31, fuz=10, solid=2, max_mem=20):
     start_filler = lambda seq, gap_id: count_filled(fill_gap(libraries,
-        parse_gap(bed, seq, str(gap_id)), k, fuz, solid, threshold, max_mem))
+        parse_gap(bed, seq, str(gap_id)), k, fuz, solid, max_mem))
 
     if pool != None:
         start_filler = lambda seq, gap_id: pool.apply_async(fill_gap,
-            args=([libraries, parse_gap(bed, seq, str(gap_id)), k, fuz, solid, threshold, max_mem]),
+            args=([libraries, parse_gap(bed, seq, str(gap_id)), k, fuz, solid, max_mem]),
             callback=count_filled)
 
     gap_id = 0
@@ -272,10 +270,10 @@ if __name__ == '__main__':
 
     # Either a set of mapped read libraries or a set of fasta-formatted reads
     # TODO: Give help on formatting libraries.txt
+    # Tab-separated list:
+    # bam, read_length, mean_insert_size, std_dev, threshold
     parser.add_argument('-l', '--libraries', required=True, help="List of aligned read libraries")
     parser.add_argument('-i', '--index', type=int, default=-1, help=argparse.SUPPRESS)
-    parser.add_argument('-u', '--unmapped-threshold', type=int, default=0,
-        help="Coverage threshold for using unmapped reads (0 for inferred, -1 to disable)")
 
     # One of three options is required for gap data:
     # 1. Cut gaps and bed from some scaffolds
@@ -296,7 +294,7 @@ if __name__ == '__main__':
     with open(args['libraries'], 'r') as f:
         for lib in f:
             arg = lib.split('\t')
-            libraries += [Library(arg[0], int(arg[1]), int(arg[2]), int(arg[3]))]
+            libraries += [Library(arg[0], int(arg[1]), int(arg[2]), int(arg[3]), int(arg[4]))]
 
     # Use only 1 library
     if args['index'] != -1:
@@ -335,9 +333,7 @@ if __name__ == '__main__':
 
     print('Starting gapfillers')
     start_fillers(args['bed'], args['gaps'], libraries, pool=pool,
-        k=args['k'], fuz=args['fuz'], solid=args['solid'],
-        threshold=args['unmapped_threshold'],
-        max_mem=max_mem)
+        k=args['k'], fuz=args['fuz'], solid=args['solid'], max_mem=max_mem)
 
     filled_gaps_file.close()
     args['bed'].close()
