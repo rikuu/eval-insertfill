@@ -21,7 +21,7 @@ def find_executable(path_hints, name):
 gapmerger = find_executable(['../../Gap2Seq/build', '../Gap2Seq/build'], 'GapMerger')
 gapcutter = find_executable(['../../Gap2Seq/build', '../Gap2Seq/build'], 'GapCutter')
 gap2seq = find_executable(['../../Gap2Seq/build', '../Gap2Seq/build'], 'Gap2Seq')
-extract = find_executable(['../../Gap2Seq/build', '../Gap2Seq/build'], 'extract')
+extract = find_executable(['../../extract/build', '../extract/build'], 'extract')
 
 # An object for holding all the data for a library of short reads
 class Library:
@@ -57,32 +57,35 @@ class Gap:
             '-right', self.right,
             '-length', str(self.length)]
 
-# Callback function to gather statistics on gaps
 successful_gaps, filled_gaps, num_of_gaps = 0, 0, 1
-start_time = datetime.datetime.now()
-print_lock = multiprocessing.Lock()
-filled_gaps_file = None
-def count_filled(result):
-    assert(filled_gaps_file != None)
+def listener(queue, filename):
     global successful_gaps, filled_gaps, num_of_gaps
-    comment, fill, success = result
-    with print_lock:
-        filled_gaps += 1
-        if success:
-            successful_gaps += 1
+    start_time = datetime.datetime.now()
+    with open(filename, 'w') as f:
+        while 1:
+            result = queue.get()
+            if result == 'kill':
+                break
 
-        delta = (datetime.datetime.now() - start_time).total_seconds()
-        eta = (filled_gaps / delta) * (num_of_gaps - filled_gaps)
-        eta_string = str(datetime.timedelta(seconds=eta))
+            success, comment, fill = result
 
-        print('Progress %.3f%% [%i / %i] %s left' % \
-            (100*(filled_gaps / num_of_gaps), filled_gaps, num_of_gaps, eta_string),
-            end='\r')
+            filled_gaps += 1
+            if success:
+                successful_gaps += 1
 
-        filled_gaps_file.write(comment + '\n' + fill + '\n')
+            delta = (datetime.datetime.now() - start_time).total_seconds()
+            eta = (delta / filled_gaps) * (num_of_gaps - filled_gaps)
+            eta_string = str(datetime.timedelta(seconds=eta))
+
+            print('Progress %.3f%% [%i / %i] %s left' % \
+                (100*(filled_gaps / num_of_gaps), filled_gaps, num_of_gaps, eta_string),
+                end='\r')
+
+            f.write(comment + '\n' + fill + '\n')
+            f.flush()
 
 # Runs all the read filtering and gap filling for a single gap
-def fill_gap(libraries, gap, k, fuz, solid, max_mem):
+def fill_gap(queue, libraries, gap, k, fuz, solid, max_mem):
     # Cleanup, just to be sure
     reads_base = 'tmp.reads.' + gap.id + '.'
     subprocess.check_call(['rm', '-f', reads_base + '*'])
@@ -134,7 +137,7 @@ def fill_gap(libraries, gap, k, fuz, solid, max_mem):
         'tmp.extract.' + gap.id + '.log',
         'tmp.gap2seq.' + gap.id + '.log'])
 
-    return (filled, gap.comment, fill)
+    queue.put((filled, gap.comment, fill))
 
 # NOTE: Assumes gaps and the bed file are in the same order
 def parse_gap(bed, gap, id):
@@ -155,14 +158,9 @@ def parse_gap(bed, gap, id):
     return Gap(scaffold, position, length, left, right, comment, id)
 
 # Starts multiple gapfilling processes in parallel
-def start_fillers(bed, gaps, libraries, pool=None, k=31, fuz=10, solid=2, max_mem=20):
-    start_filler = lambda seq, gap_id: count_filled(fill_gap(libraries,
-        parse_gap(bed, seq, str(gap_id)), k, fuz, solid, max_mem))
-
-    if pool != None:
-        start_filler = lambda seq, gap_id: pool.apply_async(fill_gap,
-            args=([libraries, parse_gap(bed, seq, str(gap_id)), k, fuz, solid, max_mem]),
-            callback=count_filled)
+def start_fillers(bed, gaps, libraries, queue, pool, k=31, fuz=10, solid=2, max_mem=20):
+    start_filler = lambda seq, gap_id: pool.apply_async(fill_gap,
+        args=([queue, libraries, parse_gap(bed, seq, str(gap_id)), k, fuz, solid, max_mem]))
 
     gap_id = 0
 
@@ -306,6 +304,8 @@ if __name__ == '__main__':
             print('Cutting gaps')
             args['bed'], args['gaps'] = cut_gaps(args['scaffolds'])
             scaffolds_cut = True
+            args['final_out'] = args['out']
+            args['out'] = 'tmp.filled'
         elif args['vcf'] != None:
             print('Parsing VCF')
             args['bed'], args['gaps'] = cut_vcf(args['vcf'], args['reference'], args['k'], args['fuz'])
@@ -316,35 +316,30 @@ if __name__ == '__main__':
 
     count_gaps(args['bed'])
 
-    pool = None
-    if args['threads'] > 1:
-        pool = multiprocessing.Pool(args['threads'])
-
     # Gap2Seq divides the max mem evenly between threads, but as we run multiple
     # parallel instances with 1 thread, we need to pre-divide
     max_mem = args['max_mem'] / args['threads']
 
-    # Open output file
-    global filled_gaps_file
-    if scaffolds_cut:
-        filled_gaps_file = open('tmp.filled', 'w')
-    else:
-        filled_gaps_file = open(args['out'], 'w')
+    manager = multiprocessing.Manager()
+    queue = manager.Queue()
+    pool = multiprocessing.Pool(args['threads'] + 1)
+
+    # Start listening for filled gaps
+    pool.apply_async(listener, (queue, args['out']))
 
     print('Starting gapfillers')
-    start_fillers(args['bed'], args['gaps'], libraries, pool=pool,
+    start_fillers(args['bed'], args['gaps'], libraries, queue, pool,
         k=args['k'], fuz=args['fuz'], solid=args['solid'], max_mem=max_mem)
 
-    filled_gaps_file.close()
     args['bed'].close()
     args['gaps'].close()
 
-    if args['threads'] > 1:
-        pool.close()
-        pool.join()
+    pool.close()
+    pool.join()
+    queue.put('kill')
 
     if scaffolds_cut:
         print('Merging filled gaps and contigs')
-        merge_gaps('tmp.filled', args['out'])
+        merge_gaps(args['out'], args['final_out'])
 
     print('Filled %i out of %i gaps' % (successful_gaps, num_of_gaps))
