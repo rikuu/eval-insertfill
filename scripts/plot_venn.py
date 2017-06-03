@@ -71,47 +71,50 @@ def format_axes(ax, log=False):
 
     if log: ax.set_yscale('log')
 
-    # ax.set_ylim([0.0, 1.0])
-
     return ax
 
-def plot(ax, plots, log=False, legend=False, ticks=True):
+def plot(ax, plots, log=False, ticks=True):
     width = 0.15
     for i, plot in enumerate(plots):
-        if plot[2] != None:
-            ax.bar(i*width*1.7, plot[0]+plot[2], width, color=tableau20[1], log=log, label='Bowtie2')
-        ax.bar(i*width*1.7, plot[0], width, color=tableau20[2*i], log=log, label=plot[1])
-
-    if legend:
-        ax.legend()
+        ax.bar(i*width*2, plot[0], width, color=tableau20[2*i], log=log)
 
     if ticks:
-        ax.set_xticks([width/1.9 + i*1.7*width for i in range(len(plots))])
+        ax.set_xticks([width/1.9 + i*2*width for i in range(len(plots))])
         ax.set_xticklabels([plot[1] for plot in plots])
 
-times = []
+total = 0
+fills = []
 with open(sys.argv[1], 'r') as f:
     for line in f:
-        line = line.rstrip()
-        hours = float(line.split(':')[0]) if line.count(':') == 2 else 0.
-        minutes = float(line.split(':')[1]) if line.count(':') == 2 else float(line.split(':')[0])
-        seconds = float(line.split(':')[2]) if line.count(':') == 2 else float(line.split(':')[1])
-        times.append(hours*60 + minutes + seconds / 60)
-print(times)
+        if 'insertions' in line:
+            total = int(line.split()[0])
 
-plots = [(times[5], 'Pindel', times[1]),
-    (times[7], 'GapFiller', None),
-    (times[9], 'Sealer', None),
-    (times[6], 'MindTheGap', None),
-    (times[3], 'Gap2Seq', None),
-    (times[8], 'GapCloser', None),
-    (times[4], 'Gap2Seq\n+ filter', times[1])]
+        if not 'S:' in line: continue
+        line = line.rstrip().split()
+        fills.append(int(line[line.index('S:')+1]))# + int(line[line.index('F:')+1]))
+
+total = total / 100
+plots = [(fills[6] / total, 'Pindel'),
+    (fills[3] / total, 'GapFiller'),
+    (fills[5] / total, 'Sealer'),
+    (fills[2] / total, 'MindTheGap'),
+    (fills[0] / total, 'Gap2Seq'),
+    (fills[4] / total, 'GapCloser'),
+    (fills[1] / total, 'Gap2Seq\n+ filter')]
+
+# plots = [(0, 'Pindel'),
+#     (300 / 3, 'GapFiller'),
+#     (172 / 3, 'Sealer'),
+#     (139 / 3, 'MindTheGap'),
+#     (171 / 3, 'Gap2Seq'),
+#     (281 / 3, 'GapCloser'),
+#     (249 / 3, 'Gap2Seq\n+ filter')]
 
 latexify(columns=1.5)
 fig, ax = plt.subplots()
 ax = format_axes(ax)
 
-ax.set_ylabel('Runtime (min)')
+ax.set_ylabel('Insertions (\%)')
 plot(ax, plots)
 plt.tight_layout()
 if len(sys.argv) == 3:

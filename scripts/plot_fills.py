@@ -72,10 +72,10 @@ def format_axes(ax):
 
     ax.set_xscale('log')
     # ax.set_yscale('log')
-    ax.set_xlabel("Gap Length (log)")
-    ax.set_ylabel("Normalized Edit Distance")
+    ax.set_xlabel("Insertion Length (log)")
+    ax.set_ylabel("Score")
 
-    # ax.set_ylim([0.0, 1.0])
+    ax.set_ylim([0.0, 1.01])
 
     return ax
 
@@ -86,25 +86,37 @@ with open(sys.argv[1], 'r') as f:
         d = l.rstrip().split()
         length = int(d[0]) - 82
 
-        # TODO: Select from multiple results somehow?
-        destar = lambda i: i[:-1] if '*' in i else i
-        delist = lambda i: i.split(',')[0] if ',' in i else i
-        norm = lambda i: float(destar(delist(d[i]))) / (length + 82)
+        def append(list, i, f=min, skip_unfilled=False):
+            value = d[i]
+
+            if '*' in value:
+                if skip_unfilled:
+                    return
+                else:
+                    value = value[:-1]
+
+            if ',' in value:
+                l = [float(j) for j in value.split(',')]
+                value = f(l)
+            else:
+                value = float(value)
+
+            list.append(value / (length + 82))
 
         if sys.argv[2] == 'indel':
-            dds[0][150][length].append(norm(1))
-            dds[1][150][length].append(norm(2))
-            dds[0][1500][length].append(norm(3))
-            dds[1][1500][length].append(norm(4))
-            dds[0][3000][length].append(norm(5))
-            dds[1][3000][length].append(norm(6))
+            append(dds[0][150][length], 1)
+            append(dds[1][150][length], 2)
+            append(dds[0][1500][length], 3)
+            append(dds[1][1500][length], 4)
+            append(dds[0][3000][length], 5)
+            append(dds[1][3000][length], 6)
 
             # NOTE: 9000 = all reads
-            dds[0][9000][length].append(norm(7))
-            dds[1][9000][length].append(norm(8))
+            append(dds[0][9000][length], 7)
+            append(dds[1][9000][length], 8)
         else:
             for i in range(len(d)-1):
-                dds[i][9000][length].append(norm(i+1))
+                append(dds[i][9000][length], i+1)
 def avg(l):
     assert(len(l) != 0)
     return sum(l) / len(l)
@@ -163,24 +175,32 @@ ax = fig.add_subplot(111)
 plots = []
 
 if sys.argv[2] == 'tools':
-    plots = [(dds[0][9000], 'Gap2Seq', '-'),
-        (dds[1][9000], 'Gap2Seq + filter', '-'),
-        (dds[2][9000], 'Pindel', '-'),
-        (dds[3][9000], 'MindTheGap', '-'),
+    plots = [(dds[2][9000], 'Pindel', '-'),
         (dds[4][9000], 'GapFiller', '-'),
+        (dds[6][9000], 'Sealer', '-'),
+        (dds[3][9000], 'MindTheGap', '-'),
+        (dds[0][9000], 'Gap2Seq', '-'),
         (dds[5][9000], 'GapCloser', '-'),
-        (dds[6][9000], 'Sealer', '-')]
+        (dds[1][9000], 'Gap2Seq\n+ filter', '-')]
 elif sys.argv[2] == 'indel':
     plots = [(dictsum(dds[0][150], dds[0][1500], dds[0][3000], dds[0][9000]), 'All reads', '--'),
         (dds[1][150], 'Filter (150)', '-'),
         (dds[1][1500], 'Filter (1500)', '-'),
         (dds[1][3000], 'Filter (3000)', '-')]
+        #(dds[1][9000], 'Filter (All)', '-')]
 elif sys.argv[2] == 'validated':
-    plots = [(dds[0][9000], 'Gap2Seq', '-'),
+    plots = [(dds[6][9000], 'Pindel', '-'),
+        (dds[3][9000], 'GapFiller', '-'),
+        (dds[5][9000], 'Sealer', '-'),
+        (dds[2][9000], 'MindTheGap', '-'),
+        (dds[0][9000], 'Gap2Seq', '-'),
+        (dds[4][9000], 'GapCloser', '-'),
+        (dds[1][9000], 'Gap2Seq\n+ filter', '-')]
+elif sys.argv[2] == 'biological':
+    plots = [(dds[2][9000], 'GapFiller', '-'),
+        (dds[3][9000], 'Sealer', '-')
         (dds[1][9000], 'MindTheGap', '-'),
-        (dds[2][9000], 'GapFiller', '-'),
-        (dds[3][9000], 'Sealer', '-'),
-        (dds[4][9000], 'Pindel', '-')]
+        (dds[0][9000], 'Gap2Seq', '-')]
 
 plot_fills(format_axes(ax), plots, sys.argv[3])
 plt.tight_layout()

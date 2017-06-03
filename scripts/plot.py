@@ -5,7 +5,7 @@ from math import sqrt, log
 from collections import defaultdict
 import numpy as np
 
-if len(sys.argv) < 4:
+if len(sys.argv) < 3:
     print('Usage: %s <results> <"recall","precision","fscore"> <sampling rate> [.pgf]' % sys.argv[0])
     sys.exit(1)
 
@@ -71,14 +71,14 @@ def format_axes(ax):
         axis.set_tick_params(direction='out', color=SPINE_COLOR)
 
     ax.set_xscale('log')
-    ax.set_xlabel("Gap Length")
+    ax.set_xlabel("Insertion Length (log)")
 
     ax.set_ylim([0.0, 1.01])
 
     return ax
 
 def avg(l):
-    if len(l) == 0: return 0
+    assert(len(l) != 0)
     return float(sum(l)) / len(l)
 
 def median(l):
@@ -109,9 +109,10 @@ def plot_between(ax, plots, steps=50, legend=True):
 # unmapped   0        1         2
 # overlap    3        4         5
 # gapfiller  6        7         8
-# filter     9        10        11
-# filter2    12       13        14
-dds = [defaultdict(lambda: defaultdict(list)) for i in range(15)]
+# gapfiller2 9        10        11
+# filter     12       13        14
+# filter2    15       16        17
+dds = [defaultdict(lambda: defaultdict(list)) for i in range(18)]
 
 with open(sys.argv[1], 'r') as f:
   for l in f:
@@ -138,48 +139,78 @@ def dictsum(*args):
         s[k] = [v for v in arg[k] for arg in args]
     return s
 
-latexify(columns=1.5)
-fig = plt.figure()
-ax = fig.add_subplot(111)
+# latexify(columns=1.5)
+# fig = plt.figure()
+# ax = fig.add_subplot(111)
+#
+# plots = []
+# if sys.argv[2] == "recall":
+#     ax.set_ylabel("Recall")
+#     # plots = [(dds[0][150], 'Unmapped', ':', 0, True),
+#     #     (dds[3][150], 'Overlap', '--', 1, True),
+#     #     (dds[6][150], 'GapFiller', '-', 2, True),
+#     #     (dds[9][150], 'GapFiller (insertion)', '-', 3, True),
+#     #     (dds[12][150], 'Filter', '--', 4, False),
+#     #     (dds[15][150], 'Filter', '-', 4, True)]
+#     plots = [(dictsum(dds[0][150], dds[0][1500], dds[0][3000]), 'Unmapped', ':', 0, True),
+#         #(dictsum(dds[3][150], dds[3][1500], dds[3][3000]), 'Overlap', '--', 1, True),
+#         (dictsum(dds[6][150], dds[6][1500], dds[6][3000]), 'GapFiller', '-', 2, True),
+#         (dds[9][150], 'Filter (150)', '--', 3, False),
+#         (dds[12][150], 'Filter (150)', '-', 3, True),
+#         (dds[9][1500], 'Filter (1500)', '--', 4, False),
+#         (dds[12][1500], 'Filter (1500)', '-', 4, True),
+#         (dds[9][3000], 'Filter (3000)', '--', 5, False),
+#         (dds[12][3000], 'Filter (3000)', '-', 5, True)]
+# if sys.argv[2] == "precision":
+#     ax.set_ylabel("Precision")
+#     plots = [(dictsum(dds[1][150], dds[1][1500], dds[1][3000]), 'Unmapped', ':', 0, True),
+#         #(dictsum(dds[4][150], dds[4][1500], dds[4][3000]), 'Overlap', '--', 1, True),
+#         (dictsum(dds[7][150], dds[7][1500], dds[7][3000]), 'GapFiller', '-', 2, True),
+#         (dds[10][150], 'Filter (150)', '--', 3, False),
+#         (dds[13][150], 'Filter (150)', '-', 3, True),
+#         (dds[10][1500], 'Filter (1500)', '--', 4, False),
+#         (dds[13][1500], 'Filter (1500)', '-', 4, True),
+#         (dds[10][3000], 'Filter (3000)', '--', 5, False),
+#         (dds[13][3000], 'Filter (3000)', '-', 5, True)]
+# if sys.argv[2] == "fscore":
+#     ax.set_ylabel("F-score")
+#     plots = [(dictsum(dds[2][150], dds[2][1500], dds[2][3000]), 'Unmapped', ':', 0, True),
+#         #(dictsum(dds[5][150], dds[5][1500], dds[5][3000]), 'Overlap', '--', 1, True),
+#         (dictsum(dds[8][150], dds[8][1500], dds[8][3000]), 'GapFiller', '-', 2, True),
+#         (dds[11][150], 'Filter (150)', '--', 3, False),
+#         (dds[14][150], 'Filter (150)', '-', 3, True),
+#         (dds[11][1500], 'Filter (1500)', '--', 4, False),
+#         (dds[14][1500], 'Filter (1500)', '-', 4, True),
+#         (dds[11][3000], 'Filter (3000)', '--', 5, False),
+#         (dds[14][3000], 'Filter (3000)', '-', 5, True)]
 
-plots = []
-if sys.argv[2] == "recall":
-    ax.set_ylabel("Recall")
-    plots = [(dictsum(dds[0][150], dds[0][1500], dds[0][3000]), 'Unmapped', ':', 0, True),
-        #(dictsum(dds[3][150], dds[3][1500], dds[3][3000]), 'Overlap', '--', 1, True),
-        (dictsum(dds[6][150], dds[6][1500], dds[6][3000]), 'GapFiller', '-', 2, True),
-        (dds[9][150], 'Filter (150)', '--', 3, False),
-        (dds[12][150], 'Filter (150)', '-', 3, True),
-        (dds[9][1500], 'Filter (1500)', '--', 4, False),
-        (dds[12][1500], 'Filter (1500)', '-', 4, True),
-        (dds[9][3000], 'Filter (3000)', '--', 5, False),
-        (dds[12][3000], 'Filter (3000)', '-', 5, True)]
-if sys.argv[2] == "precision":
-    ax.set_ylabel("Precision")
-    plots = [(dictsum(dds[1][150], dds[1][1500], dds[1][3000]), 'Unmapped', ':', 0, True),
-        #(dictsum(dds[4][150], dds[4][1500], dds[4][3000]), 'Overlap', '--', 1, True),
-        (dictsum(dds[7][150], dds[7][1500], dds[7][3000]), 'GapFiller', '-', 2, True),
-        (dds[10][150], 'Filter (150)', '--', 3, False),
-        (dds[13][150], 'Filter (150)', '-', 3, True),
-        (dds[10][1500], 'Filter (1500)', '--', 4, False),
-        (dds[13][1500], 'Filter (1500)', '-', 4, True),
-        (dds[10][3000], 'Filter (3000)', '--', 5, False),
-        (dds[13][3000], 'Filter (3000)', '-', 5, True)]
-if sys.argv[2] == "fscore":
-    ax.set_ylabel("F-score")
-    plots = [(dictsum(dds[2][150], dds[2][1500], dds[2][3000]), 'Unmapped', ':', 0, True),
-        #(dictsum(dds[5][150], dds[5][1500], dds[5][3000]), 'Overlap', '--', 1, True),
-        (dictsum(dds[8][150], dds[8][1500], dds[8][3000]), 'GapFiller', '-', 2, True),
-        (dds[11][150], 'Filter (150)', '--', 3, False),
-        (dds[14][150], 'Filter (150)', '-', 3, True),
-        (dds[11][1500], 'Filter (1500)', '--', 4, False),
-        (dds[14][1500], 'Filter (1500)', '-', 4, True),
-        (dds[11][3000], 'Filter (3000)', '--', 5, False),
-        (dds[14][3000], 'Filter (3000)', '-', 5, True)]
+latexify(columns=1.5, rows=2)
+f, (ax1, ax2) = plt.subplots(2, sharex=True)
 
-plot_between(format_axes(ax), plots, sys.argv[3], legend=(sys.argv[2] != 'recall'))
+ax1.set_ylabel("Recall")
+plots = [(dictsum(dds[0][150], dds[0][1500], dds[0][3000]), 'Unmapped', ':', 0, True),
+    (dictsum(dds[6][150], dds[6][1500], dds[6][3000]), 'GapFiller', '-', 2, True),
+    (dds[9][150], 'Filter (150)', '--', 3, False),
+    (dds[12][150], 'Filter (150)', '-', 3, True),
+    (dds[9][1500], 'Filter (1500)', '--', 4, False),
+    (dds[12][1500], 'Filter (1500)', '-', 4, True),
+    (dds[9][3000], 'Filter (3000)', '--', 5, False),
+    (dds[12][3000], 'Filter (3000)', '-', 5, True)]
+plot_between(format_axes(ax1), plots, sys.argv[2], legend=False)
+
+ax2.set_ylabel("Precision")
+plots = [(dictsum(dds[1][150], dds[1][1500], dds[1][3000]), 'Unmapped', ':', 0, True),
+    (dictsum(dds[7][150], dds[7][1500], dds[7][3000]), 'GapFiller', '-', 2, True),
+    (dds[10][150], 'Filter (150)', '--', 3, False),
+    (dds[13][150], 'Filter (150)', '-', 3, True),
+    (dds[10][1500], 'Filter (1500)', '--', 4, False),
+    (dds[13][1500], 'Filter (1500)', '-', 4, True),
+    (dds[10][3000], 'Filter (3000)', '--', 5, False),
+    (dds[13][3000], 'Filter (3000)', '-', 5, True)]
+plot_between(format_axes(ax2), plots, sys.argv[2], legend=True)
+
 plt.tight_layout()
-if len(sys.argv) == 5:
-    plt.savefig(sys.argv[4], dpi=300)
+if len(sys.argv) == 4:
+    plt.savefig(sys.argv[3], dpi=300)
 else:
     plt.show()

@@ -3,6 +3,7 @@
 *.fa*
 *.vcf
 results*
+times*
 
 data/*
 tools/*

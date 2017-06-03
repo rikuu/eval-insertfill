@@ -69,6 +69,7 @@ with open(gaps_file, 'w') as f:
         f.write('%s\t%i\t%i\n' % (contig, start, end))
 
 # Write insertion breakpoints in BED format
+# TODO: Move back from breakpoints?
 with open(breakpoints_file, 'w') as f:
     accum = 0
     for start, end in gaps:

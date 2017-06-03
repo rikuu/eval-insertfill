@@ -1,6 +1,3 @@
-[submodule "extract"]
-	path = extract
-	url = https://github.com/rikuu/extract.git
 [submodule "Gap2Seq"]
 	path = Gap2Seq
 	url = https://github.com/rikuu/Gap2Seq.git

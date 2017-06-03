@@ -4,14 +4,15 @@ import sys
 fuz = 10
 k = 31
 
-if len(sys.argv) not in [3, 4, 5]:
-    print('Usage:', sys.argv[0], '<reference.fa> <variants.vcf> [gaps.fa] [filled.fa]')
+if len(sys.argv) not in [3, 4, 5, 6]:
+    print('Usage:', sys.argv[0], '<reference.fa> <variants.vcf> [gaps.fa] [filled.fa] [gapped_reference.fa]')
     sys.exit(1)
 
 REFERENCE = sys.argv[1]
 VARIANTS = sys.argv[2]
 GAPS = sys.argv[3] if len(sys.argv) >= 4 else None
-FILLED = sys.argv[4] if len(sys.argv) == 5 else None
+FILLED = sys.argv[4] if len(sys.argv) >= 5 else None
+GAPPED_REFERENCE = sys.argv[5] if len(sys.argv) == 6 else None
 
 # Parse chromosomes from the reference into a dictionary
 reference = {}
@@ -29,6 +30,8 @@ with open(REFERENCE, 'r') as f:
 
 gaps = open(GAPS, 'w') if GAPS != None else None
 filled = open(FILLED, 'w') if FILLED != None else None
+
+gapped_reference = reference if GAPPED_REFERENCE != None else None
 
 with open(VARIANTS, 'r') as f:
     for line in f:
@@ -59,6 +62,15 @@ with open(VARIANTS, 'r') as f:
         if filled != None:
             fill = left + insert + right
             filled.write('>%s:%i-%i\n%s\n' % (comment, start, end, fill))
+
+        if gapped_reference != None:
+            gapped_reference[comment] = gapped_reference[comment][:start] + \
+                'N' * len(insert) + gapped_reference[comment][start+1:]
+
+if GAPPED_REFERENCE != None:
+    with open(GAPPED_REFERENCE, 'w') as f:
+        for comment in gapped_reference.keys():
+            f.write('>%s\n%s\n' % (comment, gapped_reference[comment]))
 
 if gaps != None: gaps.close()
 if filled != None: filled.close()

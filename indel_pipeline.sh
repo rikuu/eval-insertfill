@@ -23,7 +23,7 @@ for ((i=0;i<${#MEANS[@]};++i)); do
 
   if [ ! -f tmp.filled."${MEANS[i]}".filter ]; then
     echo -e "Running Gap2Seq (filter-${MEANS[i]})"
-    python3 $SCRIPTS/filler.py -l $DATA/libraries.txt -g $DATA/gaps.fa \
+    python3 $GAP2SEQFILTER -l $DATA/libraries.txt -g $DATA/gaps.fa \
       -b $DATA/breakpoints.bed -i "$i" -o tmp.filled."${MEANS[i]}".filter \
       -t $THREADS -u $THRESHOLD --max-mem $MAXMEM
   fi
@@ -42,7 +42,7 @@ fi
 
 if [ ! -f tmp.filled.all.filter ]; then
   echo -e "Running Gap2Seq (filter-all)"
-  python3 $SCRIPTS/filler.py -l $DATA/libraries.txt -g $DATA/gaps.fa \
+  python3 $GAP2SEQFILTER -l $DATA/libraries.txt -g $DATA/gaps.fa \
     -b $DATA/breakpoints.bed -o tmp.filled.all.filter -t $THREADS \
     -u $THRESHOLD --max-mem $MAXMEM
 fi

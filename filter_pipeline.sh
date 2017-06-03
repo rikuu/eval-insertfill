@@ -1,5 +1,7 @@
 #!/bin/bash
-set -e
+shopt -s extglob
+set -eu
+set -o pipefail
 
 DIR=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)
 SCRIPTS=$DIR/scripts
@@ -57,37 +59,35 @@ while read BED; do
 
   echo -e "$I / ${#GAPLENGTHS[@]}"
 
-  END=$(($START + $GAPLENGTH))
-
-  FLANKLENGTH=41
-  BREAKPOINT=$(($START + $FLANKLENGTH))
+  END=$(($START + $GAPLENGTH + 41))
+  REGION="$CONTIG:$START-$END"
 
   for ((i=0;i<${#MEANS[@]};++i)); do
     # Overlapping reads
     if [ ! -f overlap."$GAPLENGTH"."${MEANS[i]}".fa ]; then
-      $SAMTOOLS view -u $DATA/aln."${MEANS[i]}".bam "$CONTIG:$START-$END" | \
+      $SAMTOOLS view -u $DATA/aln."${MEANS[i]}".bam $REGION | \
         $SAMTOOLS fasta - > overlap."$GAPLENGTH"."${MEANS[i]}".fa
     fi
 
     # GapFiller-style filtering
     if [ ! -f gapfiller."$GAPLENGTH"."${MEANS[i]}".fa ]; then
       python3 $SCRIPTS/gapfiller_filter.py $DATA/aln."${MEANS[i]}".bam \
-        $CONTIG $START $END $((${MEANS[i]} / 4)) \
+        $REGION $((${MEANS[i]} / 4)) \
         > gapfiller."$GAPLENGTH"."${MEANS[i]}".fa
     fi
 
     # Filter reads
     if [ ! -f filter."$GAPLENGTH"."${MEANS[i]}".fa ]; then
-      $EXTRACT -bam $DATA/aln."${MEANS[i]}".bam \
+      $EXTRACT -bam $DATA/aln."${MEANS[i]}".bam -insertion \
         -read-length $READLENGTH -mean ${MEANS[i]} -std-dev ${STDDEVS[i]} \
-        -scaffold $CONTIG -breakpoint $BREAKPOINT -flank-length $FLANKLENGTH \
-        -gap-length $GAPLENGTH -reads filter."$GAPLENGTH"."${MEANS[i]}".fa
+        -region $REGION -reads filter."$GAPLENGTH"."${MEANS[i]}".fa
     fi
 
+    # Add unmapped reads to filtered
     if [ ! -f filter2."$GAPLENGTH"."${MEANS[i]}".fa ]; then
       cp filter."$GAPLENGTH"."${MEANS[i]}".fa filter2."$GAPLENGTH"."${MEANS[i]}".fa
       FILTERED=$(grep '^[^>;]' filter."$GAPLENGTH"."${MEANS[i]}".fa | wc -c)
-      if (( $(echo "($FILTERED / $GAPLENGTH) < $THRESHOLD" | bc -l) )); then
+      if (( $(echo "($FILTERED / ($GAPLENGTH + 82) ) < $THRESHOLD" | bc -l) )); then
         cat unmapped."${MEANS[i]}".fa >> filter2."$GAPLENGTH"."${MEANS[i]}".fa
       fi
     fi

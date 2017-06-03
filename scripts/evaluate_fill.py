@@ -59,7 +59,15 @@ for f in sys.argv[2:]:
         if not i in filled:
             results[i].append(str(len(known[i][0])) + '*')
         else:
-            results[i].append(','.join([str(edit_distance(known[i][0], fill)) for fill in filled[i]]))
+            distances = []
+            for fill in filled[i]:
+                dist = ''
+                if fill.upper().count('N') == len(fill) - (2*(k+fuz)):
+                    dist = str(len(known[i][0])) + '*'
+                else:
+                    dist = str(edit_distance(known[i][0], fill))
+                distances.append(dist)
+            results[i].append(','.join(distances))
 
 # Print plottable lengths
 for i in sorted(known.keys(), key = lambda key: len(known[key][0])):

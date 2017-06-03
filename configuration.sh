@@ -34,10 +34,11 @@ SEALER=~/abyss-1.9.0/Sealer/abyss-sealer
 # GNU time
 TIME=/usr/bin/time
 
-# Included as git submodules
-GAP2SEQ=$DIR/Gap2Seq/build/Gap2Seq
+# Included as git submodule
+GAP2SEQ=$DIR/Gap2Seq/build/Gap2Seq-core
 GAPCUTTER=$DIR/Gap2Seq/build/GapCutter
-EXTRACT=$DIR/extract/build/extract
+EXTRACT=$DIR/Gap2Seq/build/ReadFilter
+GAP2SEQFILTER=$DIR/Gap2Seq/build/Gap2Seq.py
 
 ############################ PARAMETERS ######################################
 
