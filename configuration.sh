@@ -38,7 +38,7 @@ TIME=/usr/bin/time
 GAP2SEQ=$DIR/Gap2Seq/build/Gap2Seq-core
 GAPCUTTER=$DIR/Gap2Seq/build/GapCutter
 EXTRACT=$DIR/Gap2Seq/build/ReadFilter
-GAP2SEQFILTER=$DIR/Gap2Seq/build/Gap2Seq.py
+GAP2SEQFILTER=$DIR/Gap2Seq/build/Gap2Seq
 
 ############################ PARAMETERS ######################################
 

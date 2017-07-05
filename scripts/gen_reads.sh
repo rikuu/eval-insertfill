@@ -3,6 +3,12 @@ set -e
 
 source $DIR/configuration.sh
 
+if [ ! -f $GENOME ]; then
+  echo "Reference genome (set to \"$GENOME\") missing!"
+  exit 1
+fi
+
+mkdir -p $DATA
 cd $DATA
 
 for ((i=0;i<${#MEANS[@]};++i)); do
