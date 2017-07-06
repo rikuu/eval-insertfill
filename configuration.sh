@@ -63,10 +63,9 @@ MINGAPLEN=11
 MAXGAPLEN=10000
 
 # Threshold for using unmapped reads in filtering
-# Should probably be close but less than $COVERAGE
+# Should be close but less than $COVERAGE
 THRESHOLD=25
 
-# TODO: Run fix_chr17.py ?
 GENOME=$DIR/chr17.fa
 CONTIG=chr17
 

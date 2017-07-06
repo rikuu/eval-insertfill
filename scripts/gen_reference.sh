@@ -65,5 +65,5 @@ for ((i=0;i<${#MEANS[@]};++i)); do
   fi
 
   echo -e "$DATA/aln.${MEANS[i]}.bam\t${MEANS[i]}\tALN${MEANS[i]}" >> pindel.txt
-  echo -e "$DATA/aln.${MEANS[i]}.bam\t$READLENGTH\t${MEANS[i]}\t${STDDEVS[i]}" >> libraries.txt
+  echo -e "$DATA/aln.${MEANS[i]}.bam\t$READLENGTH\t${MEANS[i]}\t${STDDEVS[i]}\t$THRESHOLD" >> libraries.txt
 done

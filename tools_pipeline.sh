@@ -29,7 +29,7 @@ fi
 
 if [ ! -f tmp.filled.all.filter ]; then
   echo -e "Running Gap2Seq (filter-all)"
-  $TIME -v python3 $SCRIPTS/filler.py -l $DATA/libraries.txt -g $DATA/gaps.fa \
+  $TIME -v $GAP2SEQFILTER -l $DATA/libraries.txt -g $DATA/gaps.fa \
     -b $DATA/breakpoints.bed -o tmp.filled.all.filter -t $THREADS \
     --max-mem $MAXMEM 2> gap2seq.filter.stderr 1> gap2seq.filter.stdout
 fi
